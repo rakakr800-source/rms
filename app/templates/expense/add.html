@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h3 class="fw-bold mb-1">Log Daily Expense</h3>
+        <p class="text-muted">Enter product grocery/utility receipt configurations to calculate net cash movements.</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('expenses.list_expenses') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Expense History</a>
+    </div>
+</div>
+
+<div class="card card-custom p-4" style="max-width: 800px;">
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">EXPENSE DATE</label>
+                {{ form.date(class="form-control", type="date") }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">EXPENSE CATEGORY</label>
+                {{ form.category(class="form-select") }}
+            </div>
+            
+            <div class="col-md-12">
+                <label class="form-label small fw-bold text-muted">PRODUCT / SERVICE NAME</label>
+                {{ form.product_name(class="form-control", placeholder="e.g. 50 Litre Full Cream Milk, Cylinder Refill") }}
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">VENDOR / BRAND NAME</label>
+                {{ form.vendor(class="form-control", placeholder="e.g. Mother Dairy, HP Gas") }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">INVOICE NUMBER</label>
+                {{ form.invoice_number(class="form-control", placeholder="e.g. GST-1055") }}
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">QUANTITY</label>
+                {{ form.quantity(class="form-control", id="field-qty", type="number", step="0.01", oninput="calculateAmount()") }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">UNIT</label>
+                {{ form.unit(class="form-select") }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">RATE (PER UNIT)</label>
+                {{ form.rate(class="form-control", id="field-rate", type="number", step="0.01", oninput="calculateAmount()") }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">GST TAX AMOUNT</label>
+                {{ form.gst(class="form-control", id="field-gst", type="number", step="0.01", oninput="calculateAmount()") }}
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">DISCOUNT AMOUNT</label>
+                {{ form.discount(class="form-control", id="field-disc", type="number", step="0.01", oninput="calculateAmount()") }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">FINAL PAID AMOUNT</label>
+                {{ form.final_amount(class="form-control fw-extrabold text-danger fs-5", id="field-final", type="number", step="0.01") }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">PAYMENT MODE</label>
+                {{ form.payment_mode(class="form-select") }}
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">UPLOAD RECEIPT PHOTO</label>
+                {{ form.bill_photo(class="form-control") }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">REMARKS / DETAILS</label>
+                {{ form.remarks(class="form-control", rows="1", placeholder="Optional details") }}
+            </div>
+        </div>
+        
+        {{ form.submit(class="btn btn-gradient w-100 py-3 fs-5") }}
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Automatically calculate final payment amount
+    window.calculateAmount = function() {
+        const qty = parseFloat(document.getElementById('field-qty').value || 0);
+        const rate = parseFloat(document.getElementById('field-rate').value || 0);
+        const gst = parseFloat(document.getElementById('field-gst').value || 0);
+        const disc = parseFloat(document.getElementById('field-disc').value || 0);
+        
+        const sub = (qty * rate) + gst - disc;
+        document.getElementById('field-final').value = Math.max(0, sub).toFixed(2);
+    }
+</script>
+{% endblock %}

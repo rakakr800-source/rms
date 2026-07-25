@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Restaurant Table Layout</h3>
+        <p class="text-muted">Live visual state of the dining area. Drag, drop, monitor seating capacities and statuses.</p>
+    </div>
+    <button class="btn btn-gradient" data-bs-toggle="modal" data-bs-target="#addTableModal"><i class="bi bi-plus-lg me-2"></i>Add Table</button>
+</div>
+
+<!-- Status Legend -->
+<div class="card card-custom p-3 mb-4">
+    <div class="d-flex flex-wrap gap-4 align-items-center justify-content-center">
+        <div class="d-flex align-items-center gap-2">
+            <span class="d-inline-block rounded-circle bg-success" style="width: 12px; height: 12px;"></span>
+            <small class="fw-bold">Vacant (Green)</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="d-inline-block rounded-circle bg-danger" style="width: 12px; height: 12px;"></span>
+            <small class="fw-bold">Occupied (Red)</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="d-inline-block rounded-circle bg-warning" style="width: 12px; height: 12px;"></span>
+            <small class="fw-bold">Preparing (Orange)</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="d-inline-block rounded-circle bg-info" style="width: 12px; height: 12px;"></span>
+            <small class="fw-bold">Ready to Serve (Yellow/Blue)</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="d-inline-block rounded-circle bg-primary" style="width: 12px; height: 12px;"></span>
+            <small class="fw-bold">Billing/Paid</small>
+        </div>
+    </div>
+</div>
+
+<!-- Tables Layout Grid -->
+<div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-xl-5 g-4">
+    {% for table in tables %}
+    <div class="col">
+        <div class="card card-custom p-3 text-center h-100 position-relative border-top border-4 
+            {% if table.status == 'Vacant' %}border-success
+            {% elif table.status == 'Occupied' %}border-danger
+            {% elif table.status in ['Preparing', 'Ready'] %}border-warning
+            {% else %}border-primary{% endif %}">
+            
+            <div class="position-absolute top-0 end-0 p-2">
+                <div class="dropdown">
+                    <button class="btn btn-link btn-sm text-secondary p-0 border-0" type="button" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('tables.delete_table', id=table.id) }}"><i class="bi bi-trash me-2"></i>Delete Table</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="fs-1 text-secondary my-2">
+                <i class="bi bi-door-closed"></i>
+            </div>
+            <h5 class="fw-bold mb-1">{{ table.table_number }}</h5>
+            <p class="text-muted small mb-3">Capacity: {{ table.capacity }} Seating</p>
+            
+            <!-- Quick status select option -->
+            <select class="form-select form-select-sm" onchange="changeTableStatus({{ table.id }}, this.value)">
+                <option value="Vacant" {% if table.status == 'Vacant' %}selected{% endif %}>Vacant</option>
+                <option value="Occupied" {% if table.status == 'Occupied' %}selected{% endif %}>Occupied</option>
+                <option value="Preparing" {% if table.status == 'Preparing' %}selected{% endif %}>Preparing</option>
+                <option value="Ready" {% if table.status == 'Ready' %}selected{% endif %}>Ready</option>
+                <option value="Billing" {% if table.status == 'Billing' %}selected{% endif %}>Billing</option>
+                <option value="Paid" {% if table.status == 'Paid' %}selected{% endif %}>Paid</option>
+            </select>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal: Add Table -->
+<div class="modal fade" id="addTableModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Add Restaurant Table</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('tables.add_table') }}" method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">TABLE NUMBER / NAME</label>
+                        {{ form.table_number(class="form-control", placeholder="e.g. Table 15, Bar Counter 1") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">SEATING CAPACITY</label>
+                        {{ form.capacity(class="form-control") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">DEFAULT STATUS</label>
+                        {{ form.status(class="form-select") }}
+                    </div>
+                    {{ form.submit(class="btn btn-gradient w-100 py-2 mt-2") }}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function changeTableStatus(tableId, status) {
+        fetch('/tables/update-status', {
+            method: 'POST',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ "table_id": tableId, "status": status })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Table Updated',
+                    text: data.message,
+                    timer: 1000,
+                    showConfirmButton: false
+                });
+                setTimeout(() => location.reload(), 1000);
+            }
+        });
+    }
+</script>
+{% endblock %}

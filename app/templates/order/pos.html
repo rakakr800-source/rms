@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<style>
+    /* Full-screen POS Layout */
+    .pos-container {
+        height: calc(100vh - 110px);
+        display: flex;
+        gap: 20px;
+        overflow: hidden;
+    }
+    
+    .pos-ticket-panel {
+        flex: 0 0 420px;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    [data-bs-theme="dark"] .pos-ticket-panel {
+        background: #111c2d;
+    }
+    
+    .pos-menu-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .cart-items-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 15px;
+    }
+    
+    .category-scroll {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+        scrollbar-width: thin;
+    }
+    
+    .menu-item-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        cursor: pointer;
+        transition: all 0.2s;
+        overflow: hidden;
+    }
+    
+    .menu-item-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(221, 36, 118, 0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pos-container">
+    
+    <!-- LEFT PANEL: CART & KOT BUILDER -->
+    <div class="pos-ticket-panel">
+        <div class="p-3 border-bottom bg-light bg-opacity-50">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="fw-bold mb-0">Active POS Ticket</h6>
+                <button class="btn btn-sm btn-outline-danger" id="clear-cart-btn"><i class="bi bi-trash"></i> Reset</button>
+            </div>
+            
+            <!-- Customer Selector -->
+            <div class="input-group mb-2">
+                <span class="input-group-text bg-white"><i class="bi bi-person"></i></span>
+                <select class="form-select border-start-0" id="customer-select">
+                    <option value="">Walk-In Guest</option>
+                    {% for c in customers %}
+                    <option value="{{ c.id }}" data-name="{{ c.name }}" data-phone="{{ c.phone }}">{{ c.name }} ({{ c.phone }})</option>
+                    {% endfor %}
+                </select>
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addCustomerModal"><i class="bi bi-person-plus"></i></button>
+            </div>
+            
+            <!-- Table and Order Type -->
+            <div class="row g-2">
+                <div class="col-6">
+                    <select class="form-select" id="order-type-select">
+                        <option value="Dine In">Dine In</option>
+                        <option value="Take Away">Take Away</option>
+                        <option value="Delivery">Delivery</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <select class="form-select" id="table-select">
+                        <option value="">No Table</option>
+                        {% for t in tables %}
+                        <option value="{{ t.id }}" {% if t.status != 'Vacant' %}disabled{% endif %}>{{ t.table_number }} ({{ t.capacity }} Pax)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CART ITEMS VIEW -->
+        <div class="cart-items-list" id="cart-items-container">
+            <div class="text-center text-muted py-5" id="cart-empty-msg">
+                <i class="bi bi-cart fs-1 mb-2"></i>
+                <p>Cart is currently empty.<br>Click items on the catalog to add.</p>
+            </div>
+        </div>
+        
+        <!-- FINANCING SECTION -->
+        <div class="p-3 border-top bg-light bg-opacity-50">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted">Subtotal</span>
+                <span class="fw-bold" id="bill-subtotal">₹0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted">GST Tax</span>
+                <span class="fw-bold text-warning" id="bill-gst">₹0.00</span>
+            </div>
+            <hr class="my-2">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="h6 mb-0 fw-bold">Grand Total</span>
+                <span class="h5 mb-0 fw-extrabold text-danger" id="bill-grand">₹0.00</span>
+            </div>
+            
+            <!-- POS Order Note -->
+            <input type="text" class="form-control mb-3" id="order-notes" placeholder="Add Kitchen Order notes (KOT comments)...">
+            
+            <!-- Submit buttons -->
+            <button class="btn btn-gradient w-100 py-3 d-flex align-items-center justify-content-center gap-2" id="place-order-btn">
+                <i class="bi bi-cpu-fill"></i> PLACE KOT & CHECKOUT
+            </button>
+        </div>
+    </div>
+    
+    <!-- RIGHT PANEL: DISH CATALOGUE -->
+    <div class="pos-menu-panel">
+        <!-- SEARCH & CATEGORY BAR -->
+        <div class="card card-custom p-3 mb-3">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control bg-light border-0" id="pos-item-search" placeholder="Quick find food name or code...">
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="category-scroll">
+                        <button class="btn btn-sm btn-primary category-btn active" data-category="all">All</button>
+                        {% for cat in categories %}
+                        <button class="btn btn-sm btn-outline-secondary category-btn" data-category="{{ cat }}">{{ cat }}</button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- FOOD TILES SCROLLABLE GRID -->
+        <div class="flex-grow-1 overflow-y-auto" style="margin-right: -10px; padding-right: 10px;">
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-3" id="menu-items-grid">
+                {% for item in menu_items %}
+                <div class="col menu-tile" data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}" data-gst="{{ item.gst_percent }}" data-category="{{ item.category }}">
+                    <div class="card menu-item-card h-100 p-2">
+                        {% if item.image %}
+                        <img src="{{ url_for('static', filename=item.image) }}" class="card-img-top rounded-3" style="height: 110px; object-fit: cover;" alt="{{ item.name }}">
+                        {% else %}
+                        <div class="bg-primary bg-opacity-10 rounded-3 d-flex align-items-center justify-content-center" style="height: 110px;">
+                            <i class="bi bi-cup-hot-fill fs-2 text-primary"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body p-2 d-flex flex-column justify-content-between mt-2">
+                            <h6 class="card-title text-truncate fw-bold mb-1" style="font-size: 0.9rem;">{{ item.name }}</h6>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <span class="fw-extrabold text-danger" style="font-size: 0.95rem;">₹{{ item.price }}</span>
+                                <span class="badge bg-secondary rounded-pill" style="font-size: 0.7rem;">Code: {{ item.code }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Quick Add Customer -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Register Loyal Guest</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="all" data-bs-close="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quick-customer-form">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">NAME</label>
+                        <input type="text" class="form-control" id="m-cust-name" required placeholder="Guest Name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">PHONE NUMBER</label>
+                        <input type="tel" class="form-control" id="m-cust-phone" required placeholder="Mobile Number">
+                    </div>
+                    <button type="submit" class="btn btn-gradient w-100 py-2 mt-2">Register & Select</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Cart state object array
+    let cart = [];
+    
+    // Add item to cart
+    document.querySelectorAll('.menu-tile').forEach(tile => {
+        tile.addEventListener('click', function() {
+            const id = parseInt(this.getAttribute('data-id'));
+            const name = this.getAttribute('data-name');
+            const price = parseFloat(this.getAttribute('data-price'));
+            const gst = parseFloat(this.getAttribute('data-gst'));
+            
+            const existing = cart.find(item => item.menu_item_id === id);
+            if (existing) {
+                existing.quantity += 1;
+            } else {
+                cart.push({
+                    menu_item_id: id,
+                    name: name,
+                    price: price,
+                    gst_pct: gst,
+                    quantity: 1
+                });
+            }
+            renderCart();
+        });
+    });
+    
+    // Render Cart HTML
+    function renderCart() {
+    const container = document.getElementById('cart-items-container');
+
+    // Clear everything first
+    container.innerHTML = '';
+
+    if (cart.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-cart fs-1 mb-2"></i>
+                <p>Cart is currently empty.<br>Click items on the catalog to add.</p>
+            </div>
+        `;
+        updateTotals(0, 0);
+        return;
+    }
+
+    let subtotal = 0;
+    let gstTotal = 0;
+
+    cart.forEach((item, index) => {
+        const itemSub = item.price * item.quantity;
+        const itemGst = (itemSub * item.gst_pct) / 100;
+
+        subtotal += itemSub;
+        gstTotal += itemGst;
+
+        const row = document.createElement('div');
+        row.className = 'd-flex justify-content-between align-items-center mb-3 pb-3 border-bottom';
+
+        row.innerHTML = `
+            <div style="max-width:220px;">
+                <h6 class="mb-0 fw-semibold text-truncate">${item.name}</h6>
+                <small class="text-muted">₹${item.price.toFixed(2)} each</small>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="updateQty(${index},-1)">−</button>
+
+                <span class="fw-bold">${item.quantity}</span>
+
+                <button class="btn btn-sm btn-outline-secondary" onclick="updateQty(${index},1)">+</button>
+
+                <button class="btn btn-sm btn-link text-danger" onclick="removeItem(${index})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+
+        container.appendChild(row);
+    });
+
+    updateTotals(subtotal, gstTotal);
+}
+    // ============================
+// CART FUNCTIONS
+// ============================
+
+// Increase / Decrease Quantity
+window.updateQty = function(index, delta) {
+
+    if (!cart[index]) return;
+
+    cart[index].quantity += delta;
+
+    if (cart[index].quantity <= 0) {
+        cart.splice(index, 1);
+    }
+
+    renderCart();
+};
+
+// Remove Item
+window.removeItem = function(index) {
+
+    if (!cart[index]) return;
+
+    cart.splice(index, 1);
+
+    renderCart();
+};
+
+// Update Bill Totals
+function updateTotals(subtotal, gstTotal) {
+
+    const grandTotal = subtotal + gstTotal;
+
+    document.getElementById("bill-subtotal").textContent =
+        "₹" + subtotal.toFixed(2);
+
+    document.getElementById("bill-gst").textContent =
+        "₹" + gstTotal.toFixed(2);
+
+    document.getElementById("bill-grand").textContent =
+        "₹" + grandTotal.toFixed(2);
+}
+
+// Clear Cart
+document.getElementById("clear-cart-btn").addEventListener("click", function () {
+
+    cart = [];
+
+    renderCart();
+
+});
+    // Category click filters
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active', 'btn-primary'));
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.add('btn-outline-secondary'));
+            this.classList.remove('btn-outline-secondary');
+            this.classList.add('active', 'btn-primary');
+            
+            const cat = this.getAttribute('data-category');
+            document.querySelectorAll('.menu-tile').forEach(tile => {
+                if (cat === 'all' || tile.getAttribute('data-category') === cat) {
+                    tile.style.display = 'block';
+                } else {
+                    tile.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    // Quick Register customer handler
+    document.getElementById('quick-customer-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('m-cust-name').value;
+        const phone = document.getElementById('m-cust-phone').value;
+        
+        fetch('/customers/api-add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: name, phone: phone})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Add to options dynamically
+                const select = document.getElementById('customer-select');
+                const opt = document.createElement('option');
+                opt.value = data.customer.id;
+                opt.innerText = `${data.customer.name} (${data.customer.phone})`;
+                opt.selected = true;
+                select.appendChild(opt);
+                
+                // Hide modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addCustomerModal'));
+                modal.hide();
+                
+                Swal.fire({icon: 'success', title: 'Customer Registered!', text: name + ' selected.', timer: 1500, showConfirmButton: false});
+            } else {
+                Swal.fire({icon: 'error', title: 'Registration Failed', text: data.message});
+            }
+        });
+    });
+    
+    // PLACE KOT & CHECKOUT TRIGGER
+    document.getElementById('place-order-btn').addEventListener('click', function() {
+        if (cart.length === 0) {
+            Swal.fire({icon: 'warning', title: 'Cart Empty', text: 'Select at least one food item before placing KOT.'});
+            return;
+        }
+        
+        const customerSelect = document.getElementById('customer-select');
+        const selectedOpt = customerSelect.options[customerSelect.selectedIndex];
+        
+        const payload = {
+            table_id: document.getElementById('table-select').value ? parseInt(document.getElementById('table-select').value) : null,
+            customer_id: customerSelect.value ? parseInt(customerSelect.value) : null,
+            customer_name: customerSelect.value ? selectedOpt.getAttribute('data-name') : 'Walk-In Guest',
+            customer_mobile: customerSelect.value ? selectedOpt.getAttribute('data-phone') : null,
+            order_type: document.getElementById('order-type-select').value,
+            notes: document.getElementById('order-notes').value,
+            cart: cart
+        };
+        
+        fetch('/pos/create-order', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Order Placed!',
+                    text: 'Ticket successfully saved. Directing to checkout register...',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                setTimeout(() => {
+                    window.location.href = `/billing/checkout/${data.order_id}`;
+                }, 1500);
+            } else {
+                Swal.fire({icon: 'error', title: 'Order Failed', text: data.message});
+            }
+        });
+    });
+</script>
+{% endblock %}

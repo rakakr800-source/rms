@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h3 class="fw-bold mb-1">System Settings & Controls</h3>
+        <p class="text-muted">Configure restaurant profiles, invoice prefixes, merchant UPI credentials, and execute database backups.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Configuration Form -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold mb-4 border-bottom pb-2">Business Profile & Rules</h5>
+            
+            <form method="POST">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold text-muted">RESTAURANT BRAND NAME</label>
+                        <input type="text" class="form-control" name="restaurant_name" value="{{ settings.restaurant_name }}" required>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold text-muted">STREET ADDRESS (INVOICE COMPLIANT)</label>
+                        <input type="text" class="form-control" name="address" value="{{ settings.address }}">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">OFFICIAL CONTACT PHONE</label>
+                        <input type="text" class="form-control" name="phone" value="{{ settings.phone }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">OFFICIAL EMAIL</label>
+                        <input type="email" class="form-control" name="email" value="{{ settings.email }}">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">GST NUMBER (GSTIN)</label>
+                        <input type="text" class="form-control" name="gst_number" value="{{ settings.gst_number }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">UPI MERCHANT PAYEE ID (CONTACTLESS CHECKOUT)</label>
+                        <input type="text" class="form-control" name="upi_id" value="{{ settings.upi_id }}" placeholder="e.g. royalswad@okaxis">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">BILL PREFIX</label>
+                        <input type="text" class="form-control" name="invoice_prefix" value="{{ settings.invoice_prefix }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">CURRENCY SYMBOL</label>
+                        <input type="text" class="form-control" name="currency" value="{{ settings.currency }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">TIME ZONE</label>
+                        <input type="text" class="form-control" name="timezone" value="{{ settings.timezone }}">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-gradient w-100 py-3 fs-5"><i class="bi bi-save me-2"></i>SAVE CONFIGURATIONS</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Maintenance Actions Drawer -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 text-center mb-4">
+            <h5 class="fw-bold mb-3">Database SQL Backups</h5>
+            <p class="text-muted small">Execute structural SQL database copy for disaster recovery and security audits.</p>
+            
+            <div class="py-3 text-secondary">
+                <i class="bi bi-cloud-arrow-down-fill" style="font-size: 4rem;"></i>
+            </div>
+            
+            <form action="{{ url_for('settings.backup_db') }}" method="POST">
+                <button type="submit" class="btn btn-outline-primary w-100 py-2"><i class="bi bi-download me-2"></i>Download SQL Backup</button>
+            </form>
+        </div>
+        
+        <div class="card card-custom p-4 text-center">
+            <h5 class="fw-bold mb-3">Audits & Activity Log</h5>
+            <p class="text-muted small">Access comprehensive action audit logs detailing IP addresses, devices, browsers, and user mutations.</p>
+            <a href="{{ url_for('settings.view_logs') }}" class="btn btn-outline-secondary w-100 py-2"><i class="bi bi-clock-history me-2"></i>View System Logs</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

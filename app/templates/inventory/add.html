@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h3 class="fw-bold mb-1">{{ title }}</h3>
+        <p class="text-muted">Enter corporate wholesaling raw item specifications, safety stocks, and storage codes.</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('inventory.index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Stock Catalog</a>
+    </div>
+</div>
+
+<div class="card card-custom p-4" style="max-width: 800px;">
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">PRODUCT NAME</label>
+                {{ form.name(class="form-control", placeholder="e.g. Fresh Paneer Dairy") }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">PRODUCT CODE</label>
+                {{ form.code(class="form-control", placeholder="e.g. PN05") }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">BARCODE (EAN)</label>
+                {{ form.barcode(class="form-control", placeholder="Optional barcode scan") }}
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">STOCK CATEGORY</label>
+                {{ form.category_id(class="form-select") }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">STOCK WH UNIT</label>
+                {{ form.unit(class="form-select") }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">ASSIGNED SUPPLIER</label>
+                {{ form.supplier_id(class="form-select") }}
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">WHOLESALE PURCHASE PRICE (₹)</label>
+                {{ form.purchase_price(class="form-control", type="number", step="0.01", placeholder="0.00") }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">SELLING RETAIL PRICE (₹)</label>
+                {{ form.selling_price(class="form-control", type="number", step="0.01", placeholder="0.00") }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">GST TAX RATE (%)</label>
+                {{ form.gst_percent(class="form-control", type="number", step="0.01", placeholder="0.0") }}
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">INITIAL LEVEL</label>
+                {{ form.current_stock(class="form-control", type="number", step="0.01", placeholder="0.00") }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">MINIMUM ALERT THRESHOLD</label>
+                {{ form.min_stock(class="form-control", type="number", step="0.01", placeholder="10.00") }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">MAXIMUM STOCK LIMIT</label>
+                {{ form.max_stock(class="form-control", type="number", step="0.01", placeholder="100.00") }}
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">STORAGE ZONE LOCATION</label>
+                {{ form.storage_location(class="form-control", placeholder="e.g. Main Kitchen Cold Room, Shelf A") }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">BATCH EXPIRY DATE</label>
+                {{ form.expiry_date(class="form-control", type="date") }}
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">UPLOAD PRODUCT PHOTO</label>
+                {{ form.photo(class="form-control") }}
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-muted">DESCRIPTION</label>
+                {{ form.description(class="form-control", rows="1", placeholder="Optional item details") }}
+            </div>
+        </div>
+        
+        {{ form.submit(class="btn btn-gradient w-100 py-3 fs-5") }}
+    </form>
+</div>
+
+{% endblock %}

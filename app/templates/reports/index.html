@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h3 class="fw-bold mb-1">Reports & Financial Analytics</h3>
+        <p class="text-muted">Export custom spreadsheet reports (Excel/CSV format) for sales, expenses, and current inventory stock.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Sales Report -->
+    <div class="col-md-4">
+        <div class="card card-custom p-4 h-100 text-center d-flex flex-column justify-content-between">
+            <div>
+                <div class="py-3 text-primary"><i class="bi bi-graph-up-arrow" style="font-size: 3rem;"></i></div>
+                <h5 class="fw-bold mb-2">Sales Revenue Report</h5>
+                <p class="text-muted small">Excel spreadsheet detailing invoices, subtotal breakdowns, customer names, taxes, and payment modes.</p>
+            </div>
+            
+            <form action="/reports/export/sales" method="GET" class="mt-3">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="small text-muted fw-bold">START DATE</label>
+                        <input type="date" class="form-control form-control-sm" name="start_date" required value="{{ today }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="small text-muted fw-bold">END DATE</label>
+                        <input type="date" class="form-control form-control-sm" name="end_date" required value="{{ today }}">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-sm btn-outline-primary w-100 py-2"><i class="bi bi-download me-2"></i>Export Sales Excel</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Expense Report -->
+    <div class="col-md-4">
+        <div class="card card-custom p-4 h-100 text-center d-flex flex-column justify-content-between">
+            <div>
+                <div class="py-3 text-danger"><i class="bi bi-wallet2" style="font-size: 3rem;"></i></div>
+                <h5 class="fw-bold mb-2">Daily Expense Report</h5>
+                <p class="text-muted small">Excel listing containing daily grocery costs, fuel, gas refills, salaries, vendor profiles, and bill remarks.</p>
+            </div>
+            
+            <form action="/reports/export/expense" method="GET" class="mt-3">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="small text-muted fw-bold">START DATE</label>
+                        <input type="date" class="form-control form-control-sm" name="start_date" required value="{{ today }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="small text-muted fw-bold">END DATE</label>
+                        <input type="date" class="form-control form-control-sm" name="end_date" required value="{{ today }}">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-sm btn-outline-danger w-100 py-2"><i class="bi bi-download me-2"></i>Export Expense Excel</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Stock Report -->
+    <div class="col-md-4">
+        <div class="card card-custom p-4 h-100 text-center d-flex flex-column justify-content-between">
+            <div>
+                <div class="py-3 text-success"><i class="bi bi-box-seam" style="font-size: 3rem;"></i></div>
+                <h5 class="fw-bold mb-2">Inventory Stock Report</h5>
+                <p class="text-muted small">Full ledger of ingredients, current volumes, purchase prices, safety levels, and batch expiry statuses.</p>
+            </div>
+            
+            <div class="mt-3">
+                <p class="small text-muted mb-4">Exporting is done for current stock levels directly.</p>
+                <a href="/reports/export/stock" class="btn btn-sm btn-outline-success w-100 py-2"><i class="bi bi-download me-2"></i>Export Stock Excel</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

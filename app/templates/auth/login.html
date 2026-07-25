@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleek Portal Sign-In - Restaurant Management System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 40px;
+            backdrop-filter: blur(20px);
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        
+        .brand-icon {
+            background: linear-gradient(135deg, #FF512F 0%, #DD2476 100%);
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(221, 36, 118, 0.4);
+        }
+        
+        .form-control-custom {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        
+        .form-control-custom:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: #DD2476;
+            box-shadow: 0 0 12px rgba(221, 36, 118, 0.2);
+            color: #fff;
+        }
+        
+        .btn-gradient {
+            background: linear-gradient(135deg, #FF512F 0%, #DD2476 100%);
+            border: none;
+            color: #fff;
+            font-weight: 700;
+            padding: 14px;
+            border-radius: 12px;
+            transition: all 0.2s;
+            box-shadow: 0 8px 20px rgba(221, 36, 118, 0.3);
+        }
+        
+        .btn-gradient:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(221, 36, 118, 0.4);
+            opacity: 0.95;
+        }
+        
+        .btn-biometric {
+            background: transparent;
+            border: 1px dashed rgba(255,255,255,0.2);
+            color: #a3b1cc;
+            font-weight: 600;
+            padding: 12px;
+            border-radius: 12px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+        
+        .btn-biometric:hover {
+            border-color: #FF512F;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.02);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="d-flex flex-column align-items-center text-center">
+            <div class="brand-icon">
+                <i class="bi bi-shop text-white"></i>
+            </div>
+            <h3 class="fw-extrabold mb-1">Restaurant RMS</h3>
+            <p class="text-muted mb-4">Production-grade Commercial Web POS Portal</p>
+        </div>
+        
+        <!-- FLASHE MESSAGES -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert" style="background: rgba(220,53,69,0.1); border: 1px solid rgba(220,53,69,0.2); color: #ff8585;">
+                        {{ message }}
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- BIOMETRIC SIGN-IN BUTTON (VISIBLE ON COMPATIBLE DEVICES) -->
+        <button class="btn btn-biometric mb-4" id="biometric-login-btn">
+            <i class="bi bi-fingerprint fs-4 text-warning"></i> Touch ID / Face ID Sign-In
+        </button>
+
+        <div class="position-relative text-center my-4 d-flex align-items-center justify-content-center">
+            <hr class="w-100" style="border-color: rgba(255,255,255,0.1);">
+            <span class="position-absolute bg-indigo-900 px-3 text-muted" style="background-color: #121332; font-size: 0.85rem;">OR USE CREDENTIALS</span>
+        </div>
+
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+            
+            <div class="mb-3">
+                <label class="form-label text-muted fw-bold small">USERNAME</label>
+                {{ form.username(class="form-control form-control-custom", placeholder="Enter username", id="username-field") }}
+            </div>
+            
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label text-muted fw-bold small mb-0">PASSWORD</label>
+                    <a href="{{ url_for('auth.forgot_password') }}" class="text-decoration-none small text-warning">Forgot?</a>
+                </div>
+                {{ form.password(class="form-control form-control-custom", placeholder="Enter password") }}
+            </div>
+
+            <div class="form-check mb-4">
+                {{ form.remember_me(class="form-check-input", id="rememberCheck") }}
+                <label class="form-check-label text-muted small" for="rememberCheck">Keep me signed in for 30 days</label>
+            </div>
+
+            {{ form.submit(class="btn btn-gradient w-100 fs-6") }}
+        </form>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
+    
+    <!-- Dynamic Fingerprint Login Support using Javascript WebAuthn -->
+    <script>
+        document.getElementById('biometric-login-btn').addEventListener('click', async function() {
+            const username = document.getElementById('username-field').value.trim();
+            if(!username) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Username Required',
+                    text: 'Please enter your username first to retrieve registered biometric credentials.',
+                    background: '#1e1b4b',
+                    color: '#fff',
+                    confirmButtonColor: '#DD2476'
+                });
+                return;
+            }
+
+            try {
+                // 1. Fetch challenge parameters from back end
+                const optionsRes = await fetch('/webauthn/login/options', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: username})
+                });
+                
+                if (!optionsRes.ok) {
+                    const errorObj = await optionsRes.json();
+                    throw new Error(errorObj.message || "Failed to retrieve options");
+                }
+                
+                const options = await optionsRes.json();
+                
+                // Decode helper
+                function bufferDecode(value) {
+                    return Uint8Array.from(atob(value), c => c.charCodeAt(0));
+                }
+                
+                // Format challenge and credential list for WebAuthn API
+                options.challenge = bufferDecode(options.challenge);
+                options.allowCredentials = options.allowCredentials.map(c => {
+                    c.id = bufferDecode(c.id);
+                    return c;
+                });
+                
+                // 2. Query browser device authenticator
+                const assertion = await navigator.credentials.get({publicKey: options});
+                
+                // Helper to encode response to transmit to server
+                function bufferEncode(value) {
+                    return btoa(String.fromCharCode.apply(null, new Uint8Array(value)));
+                }
+                
+                const credentialResponse = {
+                    id: assertion.id,
+                    rawId: bufferEncode(assertion.rawId),
+                    type: assertion.type,
+                    response: {
+                        authenticatorData: bufferEncode(assertion.response.authenticatorData),
+                        clientDataJSON: bufferEncode(assertion.response.clientDataJSON),
+                        signature: bufferEncode(assertion.response.signature),
+                        userHandle: assertion.response.userHandle ? bufferEncode(assertion.response.userHandle) : null
+                    }
+                };
+                
+                // 3. Post back for validation and sign-in
+                const verifyRes = await fetch('/webauthn/login/verify', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(credentialResponse)
+                });
+                
+                const result = await verifyRes.json();
+                if (result.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Authenticated!',
+                        text: 'Biometric authorization successful. Redirecting...',
+                        background: '#1e1b4b',
+                        color: '#fff',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    throw new Error(result.message);
+                }
+                
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Biometric Error',
+                    text: err.message || 'WebAuthn API verification failed on this device.',
+                    background: '#1e1b4b',
+                    color: '#fff',
+                    confirmButtonColor: '#DD2476'
+                });
+            }
+        });
+    </script>
+</body>
+</html>

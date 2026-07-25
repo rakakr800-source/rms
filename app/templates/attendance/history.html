@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Attendance & Working Hours</h3>
+        <p class="text-muted">Clock in/out, view daily attendance history, and track metrics.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if current_user.role in ['Admin', 'Manager'] %}
+        <a href="{{ url_for('attendance.export_attendance') }}" class="btn btn-outline-secondary"><i class="bi bi-download me-2"></i>Export Attendance</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Clock-in / Clock-out interactive card -->
+    <div class="col-md-4">
+        <div class="card card-custom p-4 text-center h-100">
+            <h5 class="fw-bold mb-3">Duty Register Console</h5>
+            
+            {% set today_attendance = attendances | selectattr("date", "equalto", today) | list %}
+            {% if today_attendance %}
+                {% set attendance_record = today_attendance[0] %}
+                <div class="py-4">
+                    <i class="bi bi-clock-history text-success" style="font-size: 4rem;"></i>
+                </div>
+                <h6 class="fw-bold text-success mb-1">Status: Active on Duty</h6>
+                <p class="text-muted small">Clock In: {{ attendance_record.clock_in.strftime('%I:%M %p') }}</p>
+                
+                {% if attendance_record.clock_out %}
+                <p class="text-muted small">Clock Out: {{ attendance_record.clock_out.strftime('%I:%M %p') }}</p>
+                <div class="alert alert-secondary py-2 small mb-0 mt-3">Duty shifts concluded for today.</div>
+                {% else %}
+                <form action="{{ url_for('attendance.clock_out') }}" method="POST">
+                    <button type="submit" class="btn btn-danger w-100 py-3 mt-3 fw-bold"><i class="bi bi-power"></i> concl. clock-out</button>
+                </form>
+                {% endif %}
+            {% else %}
+                <div class="py-4">
+                    <i class="bi bi-power text-danger" style="font-size: 4rem;"></i>
+                </div>
+                <h6 class="fw-bold text-danger mb-3">Status: Off Duty</h6>
+                <form action="{{ url_for('attendance.clock_in') }}" method="POST">
+                    <button type="submit" class="btn btn-gradient w-100 py-3 fw-bold"><i class="bi bi-play-circle-fill"></i> CLOCK IN DUTY SHIFT</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Attendance Calendar History -->
+    <div class="col-md-8">
+        <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold mb-3">Working History (Chronological)</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="attendance-list-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Employee Name</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
+                            <th>Worked Hours</th>
+                            <th>Late Entry</th>
+                            <th>Early Exit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in attendances %}
+                        <tr>
+                            <td><span class="fw-bold">{{ a.date.strftime('%Y-%m-%d') }}</span></td>
+                            <td>{{ a.user.name }}</td>
+                            <td>{{ a.clock_in.strftime('%I:%M %p') if a.clock_in else "N/A" }}</td>
+                            <td>{{ a.clock_out.strftime('%I:%M %p') if a.clock_out else "Active" }}</td>
+                            <td class="fw-bold text-primary">{{ a.working_hours or "0.0" }} hours</td>
+                            <td>
+                                {% if a.late_entry %}
+                                <span class="badge bg-danger rounded-pill">Late Entry</span>
+                                {% else %}
+                                <span class="badge bg-success rounded-pill">On Time</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if a.early_exit %}
+                                <span class="badge bg-warning text-dark rounded-pill">Early Exit</span>
+                                {% else %}
+                                <span class="badge bg-success rounded-pill">Concluded</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        $('#attendance-list-table').DataTable({
+            "order": [[0, "desc"]]
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Cashier & Checkout Register</h3>
+        <p class="text-muted">Manage active dining tables billing, process cash/card/split checkout, and reprint invoices.</p>
+    </div>
+    <a href="{{ url_for('orders.pos_interface') }}" class="btn btn-gradient"><i class="bi bi-plus-lg me-2"></i>New POS Ticket</a>
+</div>
+
+<div class="row g-4">
+    <!-- Active Unpaid Orders -->
+    <div class="col-xl-6">
+        <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold mb-3 text-warning"><i class="bi bi-clock-history me-2"></i>Pending Billing Queue</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="unpaid-table">
+                    <thead>
+                        <tr>
+                            <th>Bill No.</th>
+                            <th>Table / Guest</th>
+                            <th>Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in unpaid_orders %}
+                        <tr>
+                            <td><span class="fw-bold text-primary">{{ o.order_number }}</span></td>
+                            <td>
+                                <div>{{ o.table_rel.table_number if o.table_rel else "POS Walk-In" }}</div>
+                                <small class="text-muted">{{ o.customer_name or "Walk-In" }}</small>
+                            </td>
+                            <td class="fw-extrabold text-danger">{{ o.grand_total | currency }}</td>
+                            <td>
+                                <a href="{{ url_for('billing.checkout', order_id=o.id) }}" class="btn btn-sm btn-success rounded-pill px-3">
+                                    <i class="bi bi-cart-check me-1"></i> Checkout
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Paid Invoices History -->
+    <div class="col-xl-6">
+        <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold mb-3 text-success"><i class="bi bi-check-circle me-2"></i>Completed Sales (Today)</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="paid-table">
+                    <thead>
+                        <tr>
+                            <th>Bill No.</th>
+                            <th>Mode</th>
+                            <th>Total</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in paid_orders %}
+                        <tr>
+                            <td><span class="fw-semibold">{{ o.order_number }}</span></td>
+                            <td><span class="badge bg-secondary rounded-pill">{{ o.payment_method }}</span></td>
+                            <td class="fw-bold text-success">{{ o.grand_total | currency }}</td>
+                            <td>
+                                <a href="{{ url_for('billing.invoice_view', order_id=o.id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    <i class="bi bi-receipt me-1"></i> View & Print
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        $('#unpaid-table').DataTable({
+            order: [[0, 'desc']],
+            pageLength: 5,
+            lengthMenu: [5, 10, 20]
+        });
+        $('#paid-table').DataTable({
+            order: [[0, 'desc']],
+            pageLength: 5,
+            lengthMenu: [5, 10, 20]
+        });
+    });
+</script>
+{% endblock %}

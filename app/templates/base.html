@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title or "Restaurant POS & Management System" }} - {{ restaurant_name }}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.min.css" rel="stylesheet">
+    <!-- DataTables -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #FF512F 0%, #DD2476 100%);
+            --sidebar-width: 260px;
+            --sidebar-bg: #111c2d;
+            --font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background-color: #f4f6fa;
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        [data-bs-theme="dark"] body {
+            background-color: #0b111e;
+        }
+        
+        /* Modern Collapsible Sidebar */
+        #sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            color: #fff;
+            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        #sidebar .logo {
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        #sidebar .nav-link {
+            color: #a3b1cc;
+            padding: 12px 20px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            border-radius: 8px;
+            margin: 4px 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+        
+        #sidebar .nav-link:hover, #sidebar .nav-link.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        #sidebar .nav-link.active {
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 15px rgba(221, 36, 118, 0.3);
+        }
+        
+        #sidebar .nav-header {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #5d6d8c;
+            font-weight: 700;
+            margin: 15px 25px 5px 25px;
+        }
+        
+        /* Layout Content adjustments */
+        #content {
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .navbar-main {
+            background-color: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 15px 30px;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        
+        [data-bs-theme="dark"] .navbar-main {
+            background-color: #111c2d;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        /* Styled Rounded Cards */
+        .card-custom {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background-color: #fff;
+        }
+        
+        [data-bs-theme="dark"] .card-custom {
+            background-color: #111c2d;
+        }
+        
+        .card-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+        }
+        
+        .gradient-card {
+            background: var(--primary-gradient);
+            color: #fff;
+        }
+        
+        .btn-gradient {
+            background: var(--primary-gradient);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 10px 24px;
+            box-shadow: 0 4px 15px rgba(221, 36, 118, 0.2);
+            transition: all 0.2s;
+        }
+        
+        .btn-gradient:hover {
+            color: #fff;
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        /* Global Search popup */
+        #global-search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1050;
+            max-height: 350px;
+            overflow-y: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        /* Mobile responsive adjustments */
+        @media (max-width: 991.98px) {
+            #sidebar {
+                margin-left: calc(-1 * var(--sidebar-width));
+            }
+            #sidebar.active {
+                margin-left: 0;
+            }
+            #content {
+                margin-left: 0;
+                width: 100%;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <div id="sidebar" class="d-flex flex-column">
+        <div class="logo d-flex align-items-center justify-content-between">
+            <span><i class="bi bi-shop me-2"></i>{{ restaurant_name[:15] }}</span>
+            <button class="btn d-lg-none text-white border-0" id="sidebar-close-btn"><i class="bi bi-x-lg"></i></button>
+        </div>
+        
+        <div class="flex-grow-1 overflow-y-auto mt-3">
+            <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                <i class="bi bi-grid-1x2-fill"></i> Dashboard
+            </a>
+            
+            {% if current_user.has_permission('orders') %}
+            <a href="{{ url_for('orders.pos_interface') }}" class="nav-link {% if request.endpoint == 'orders.pos_interface' %}active{% endif %}">
+                <i class="bi bi-cpu-fill text-danger"></i> <b>POS Billing Panel</b>
+            </a>
+            {% endif %}
+
+            <div class="nav-header">Operations</div>
+            
+            {% if current_user.has_permission('tables') %}
+            <a href="{{ url_for('tables.layout') }}" class="nav-link {% if request.endpoint == 'tables.layout' %}active{% endif %}">
+                <i class="bi bi-table"></i> Table Management
+            </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('orders') %}
+            <a href="{{ url_for('orders.list_orders') }}" class="nav-link {% if request.endpoint == 'orders.list_orders' %}active{% endif %}">
+                <i class="bi bi-receipt"></i> Order Records
+            </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('kitchen') %}
+            <a href="{{ url_for('kitchen.display') }}" class="nav-link {% if request.endpoint == 'kitchen.display' %}active{% endif %}">
+                <i class="bi bi-cup-hot"></i> Kitchen KDS
+            </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('billing') %}
+            <a href="{{ url_for('billing.index') }}" class="nav-link {% if request.endpoint == 'billing.index' %}active{% endif %}">
+                <i class="bi bi-cash-register"></i> Cashier System
+            </a>
+            {% endif %}
+
+            <div class="nav-header">Management</div>
+            
+            {% if current_user.has_permission('inventory') %}
+            <a href="{{ url_for('inventory.index') }}" class="nav-link {% if 'inventory' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-box-seam"></i> Inventory Stock
+            </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('menu') %}
+            <a href="{{ url_for('menu.list_menu') }}" class="nav-link {% if 'menu' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-journal-text"></i> Menu Catalog
+            </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('expenses') %}
+            <a href="{{ url_for('expenses.list_expenses') }}" class="nav-link {% if 'expenses' in request.endpoint and 'suppliers' not in request.url %}active{% endif %}">
+                <i class="bi bi-wallet2"></i> Expense Tracker
+            </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('suppliers') %}
+            <a href="{{ url_for('expenses.list_suppliers') }}" class="nav-link {% if 'suppliers' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-truck"></i> Suppliers
+            </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('customers') %}
+            <a href="{{ url_for('customers.index') }}" class="nav-link {% if 'customers' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-people"></i> Customers
+            </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('attendance') %}
+            <a href="{{ url_for('attendance.index') }}" class="nav-link {% if 'attendance' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-calendar-check"></i> Attendance
+            </a>
+            {% endif %}
+
+            {% if current_user.role == 'Admin' %}
+            <div class="nav-header">Admin Settings</div>
+            <a href="{{ url_for('users.list_users') }}" class="nav-link {% if 'users' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-person-gear"></i> Staff Directory
+            </a>
+            <a href="{{ url_for('reports.index') }}" class="nav-link {% if 'reports' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-graph-up-arrow"></i> Reports & Analytics
+            </a>
+            <a href="{{ url_for('settings.index') }}" class="nav-link {% if 'settings' in request.endpoint %}active{% endif %}">
+                <i class="bi bi-sliders"></i> Restaurant Settings
+            </a>
+            {% endif %}
+        </div>
+        
+        <!-- User Info at bottom -->
+        <div class="p-3 bg-dark d-flex align-items-center gap-3">
+            <img src="{{ url_for('static', filename=current_user.photo if current_user.photo else 'uploads/profiles/default.png') }}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'" class="rounded-circle" width="40" height="40" alt="Profile">
+            <div class="overflow-hidden">
+                <h6 class="mb-0 text-white text-truncate">{{ current_user.name }}</h6>
+                <small class="text-muted text-uppercase" style="font-size: 0.75rem;">{{ current_user.role }}</small>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="text-danger ms-auto fs-5" title="Logout"><i class="bi bi-power"></i></a>
+        </div>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div id="content">
+        <!-- TOP NAVBAR -->
+        <nav class="navbar navbar-expand navbar-main align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-outline-secondary d-lg-none" id="sidebar-toggle-btn"><i class="bi bi-list"></i></button>
+                <!-- Global Search -->
+                <div class="position-relative d-none d-md-block" style="width: 300px;">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control bg-light border-0" id="global-search-input" placeholder="Global search bills, products...">
+                    </div>
+                    <div class="list-group" id="global-search-results" style="display: none;"></div>
+                </div>
+            </div>
+            
+            <div class="d-flex align-items-center gap-3">
+                <!-- Theme Toggle -->
+                <button class="btn btn-light rounded-circle border-0 text-secondary" id="theme-toggle-btn"><i class="bi bi-moon-fill"></i></button>
+                
+                <!-- Notification Bell -->
+                <div class="dropdown">
+                    <button class="btn btn-light rounded-circle border-0 text-secondary position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="notif-dropdown-btn">
+                        <i class="bi bi-bell-fill"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notif-badge" style="display: none;">0</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end p-2" id="notif-dropdown-menu" style="width: 300px;">
+                        <li class="dropdown-header border-bottom pb-2">Recent Notifications</li>
+                        <div id="notif-items">
+                            <li class="p-3 text-center text-muted"><small>No new alerts</small></li>
+                        </div>
+                        <li class="dropdown-footer border-top pt-2 text-center">
+                            <a href="{{ url_for('settings.view_notifications') }}" class="text-decoration-none text-primary"><small>View all</small></a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Digital Clock -->
+                <div class="text-end d-none d-sm-block">
+                    <h6 class="mb-0 fw-bold" id="live-time">00:00:00</h6>
+                    <small class="text-muted" id="live-date">July 24, 2026</small>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- FLASHE MESSAGES -->
+        <div class="container-fluid px-4 mt-3">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+        
+        <!-- PAGE MAIN CONTENT -->
+        <div class="container-fluid px-4 py-3 flex-grow-1">
+            {% block content %}{% endblock %}
+        </div>
+        
+        <!-- FOOTER -->
+        <footer class="bg-white py-3 border-top mt-auto text-center text-muted">
+            <small>&copy; 2026 {{ restaurant_name }}. Commercial POS Software. Developed with premium modular design.</small>
+        </footer>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // Collapsible Sidebar responsive toggler
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle-btn');
+        const sidebarClose = document.getElementById('sidebar-close-btn');
+        
+        if(sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => sidebar.classList.add('active'));
+        }
+        if(sidebarClose) {
+            sidebarClose.addEventListener('click', () => sidebar.classList.remove('active'));
+        }
+        
+        // Theme Toggler (Dark/Light mode)
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        const htmlElement = document.documentElement;
+        
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        htmlElement.setAttribute('data-bs-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+        
+        themeBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            htmlElement.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+        
+        function updateThemeIcon(theme) {
+            const icon = themeBtn.querySelector('i');
+            if (theme === 'dark') {
+                icon.className = 'bi bi-sun-fill text-warning';
+            } else {
+                icon.className = 'bi bi-moon-fill';
+            }
+        }
+        
+        // Live Clock
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateStr = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById('live-time').innerText = timeStr;
+            document.getElementById('live-date').innerText = dateStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+        
+        // Global Search API handler
+        const searchInput = document.getElementById('global-search-input');
+        const searchResults = document.getElementById('global-search-results');
+        
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            if (query.length < 2) {
+                searchResults.style.display = 'none';
+                return;
+            }
+            
+            fetch(`/api/search?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    searchResults.innerHTML = '';
+                    if (data.results.length === 0) {
+                        searchResults.innerHTML = '<div class="list-group-item text-muted">No records found.</div>';
+                    } else {
+                        data.results.forEach(item => {
+                            const div = document.createElement('a');
+                            div.href = item.url;
+                            div.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                            div.innerHTML = `
+                                <div>
+                                    <h6 class="mb-0 text-primary">${item.title}</h6>
+                                    <small class="text-muted">${item.sub}</small>
+                                </div>
+                                <span class="badge bg-secondary rounded-pill">${item.category}</span>
+                            `;
+                            searchResults.appendChild(div);
+                        });
+                    }
+                    searchResults.style.display = 'block';
+                });
+        });
+        
+        // Close search when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+        
+        // Live Notification Poller
+        function pollNotifications() {
+            fetch('/api/notifications/unread')
+                .then(res => res.json())
+                .then(data => {
+                    const badge = document.getElementById('notif-badge');
+                    const itemsBox = document.getElementById('notif-items');
+                    
+                    if (data.count > 0) {
+                        badge.innerText = data.count;
+                        badge.style.display = 'block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                    
+                    if (data.latest.length > 0) {
+                        itemsBox.innerHTML = '';
+                        data.latest.forEach(n => {
+                            const li = document.createElement('li');
+                            li.className = 'p-2 border-bottom';
+                            li.innerHTML = `
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="bi bi-info-circle-fill text-warning mt-1"></i>
+                                    <div>
+                                        <div class="fw-bold text-dark" style="font-size: 0.85rem;">${n.title}</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">${n.message}</div>
+                                    </div>
+                                </div>
+                            `;
+                            itemsBox.appendChild(li);
+                        });
+                    }
+                });
+        }
+        setInterval(pollNotifications, 10000); // 10s polling
+        pollNotifications();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Loyal Guest Directory</h3>
+        <p class="text-muted">Track customer visit frequencies, accumulate loyalty point logs, and send targeted birthday alerts.</p>
+    </div>
+    <button class="btn btn-gradient" data-bs-toggle="modal" data-bs-target="#addCustomerModal"><i class="bi bi-person-plus me-2"></i>Register Customer</button>
+</div>
+
+<div class="card card-custom p-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" id="customers-directory-table">
+            <thead>
+                <tr>
+                    <th>Customer Name</th>
+                    <th>Phone / Mobile</th>
+                    <th>Birthday</th>
+                    <th>Address</th>
+                    <th>Loyalty Points</th>
+                    <th>Visit History</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in customers %}
+                <tr>
+                    <td><span class="fw-bold text-dark">{{ c.name }}</span></td>
+                    <td>{{ c.phone }}</td>
+                    <td>{{ c.birthday.strftime('%b %d, %Y') if c.birthday else "N/A" }}</td>
+                    <td>{{ c.address or "N/A" }}</td>
+                    <td><span class="badge bg-primary rounded-pill px-3 fw-bold">{{ c.loyalty_points }} pts</span></td>
+                    <td>
+                        <div class="small fw-semibold">Spend: {{ c.total_spending | currency }}</div>
+                        <small class="text-muted">Visits: {{ c.visit_count }} times</small>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('customers.delete_customer', id=c.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this customer record?')"><i class="bi bi-trash"></i></a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Add Customer -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Register Loyal Guest</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('customers.add_customer') }}" method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">CUSTOMER NAME</label>
+                        {{ form.name(class="form-control", placeholder="Rahul Malhotra") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">PHONE NUMBER</label>
+                        {{ form.phone(class="form-control", placeholder="+91 99999 88888") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">BIRTHDAY (ANNIVERSARY ALERTS)</label>
+                        {{ form.birthday(class="form-control", type="date") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">ADDRESS</label>
+                        {{ form.address(class="form-control", rows="2") }}
+                    </div>
+                    {{ form.submit(class="btn btn-gradient w-100 py-2 mt-2") }}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        $('#customers-directory-table').DataTable({
+            "order": [[0, "asc"]]
+        });
+    });
+</script>
+{% endblock %}

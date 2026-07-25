@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Header with welcome statement -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h3 class="fw-bold mb-1">POS Central Terminal</h3>
+        <p class="text-muted">Welcome back, {{ current_user.name }}! Here is today's restaurant performance overview.</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('orders.pos_interface') }}" class="btn btn-gradient d-inline-flex align-items-center gap-2">
+            <i class="bi bi-cpu-fill"></i> Launch POS Register
+        </a>
+    </div>
+</div>
+
+<!-- STATS METRICS ROW -->
+<div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-4 mb-4">
+    <!-- Today's Sales -->
+    <div class="col">
+        <div class="card card-custom p-4 border-start border-4 border-primary">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold">TODAY'S REVENUE</span>
+                    <h3 class="mb-0 fw-bold mt-1 text-primary">{{ today_sales | currency }}</h3>
+                </div>
+                <div class="bg-primary bg-opacity-10 p-3 rounded-3 text-primary fs-4">
+                    <i class="bi bi-currency-rupee"></i>
+                </div>
+            </div>
+            <div class="mt-2 text-muted small"><span class="text-success"><i class="bi bi-arrow-up"></i> Live</span> counter metrics</div>
+        </div>
+    </div>
+    
+    <!-- Today's Expenses -->
+    <div class="col">
+        <div class="card card-custom p-4 border-start border-4 border-danger">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold">TODAY'S EXPENSES</span>
+                    <h3 class="mb-0 fw-bold mt-1 text-danger">{{ today_expense | currency }}</h3>
+                </div>
+                <div class="bg-danger bg-opacity-10 p-3 rounded-3 text-danger fs-4">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+            </div>
+            <div class="mt-2 text-muted small">Daily grocery & utility logs</div>
+        </div>
+    </div>
+
+    <!-- Net Profit -->
+    <div class="col">
+        <div class="card card-custom p-4 border-start border-4 border-success">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold">NET PROFIT</span>
+                    <h3 class="mb-0 fw-bold mt-1 {% if today_profit >= 0 %}text-success{% else %}text-danger{% endif %}">{{ today_profit | currency }}</h3>
+                </div>
+                <div class="bg-success bg-opacity-10 p-3 rounded-3 text-success fs-4">
+                    <i class="bi bi-graph-up"></i>
+                </div>
+            </div>
+            <div class="mt-2 text-muted small">Sales minus daily expenses</div>
+        </div>
+    </div>
+
+    <!-- Active Orders -->
+    <div class="col">
+        <div class="card card-custom p-4 border-start border-4 border-warning">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-bold">TODAY'S ORDERS</span>
+                    <h3 class="mb-0 fw-bold mt-1 text-warning">{{ today_orders }} Orders</h3>
+                </div>
+                <div class="bg-warning bg-opacity-10 p-3 rounded-3 text-warning fs-4">
+                    <i class="bi bi-cart3"></i>
+                </div>
+            </div>
+            <div class="mt-2 text-muted small"><b>{{ pending_orders }}</b> in queue, <b>{{ completed_orders }}</b> served</div>
+        </div>
+    </div>
+</div>
+
+<!-- CHARTS AND ALERTS ROW -->
+<div class="row g-4 mb-4">
+    <!-- Chart Box -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold mb-3">Weekly Sales vs Expenses</h5>
+            <div style="height: 300px; width: 100%;">
+                <canvas id="salesExpensesChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Low Stock Sidebar -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="fw-bold mb-0">Low Stock Alerts</h5>
+                <span class="badge bg-danger rounded-pill">{{ low_stock_count }} items</span>
+            </div>
+            {% if low_stock_items %}
+            <div class="list-group list-group-flush">
+                {% for item in low_stock_items %}
+                <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0 fw-semibold">{{ item.name }}</h6>
+                        <small class="text-muted">Storage: {{ item.storage_location or "N/A" }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill fw-bold">{{ item.current_stock }} {{ item.unit }}</span>
+                        <div style="font-size: 0.75rem;" class="text-muted mt-1">Min: {{ item.min_stock }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-check-circle-fill text-success fs-1 mb-2"></i>
+                <p class="text-muted mb-0">All stock items are sufficient!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- RECENTS TABLES GRID -->
+<div class="row g-4">
+    <!-- Recent Orders -->
+    <div class="col-md-6">
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold mb-3">Recent POS Tickets</h5>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Table</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in recent_orders %}
+                        <tr>
+                            <td><a href="{{ url_for('billing.invoice_view', order_id=o.id) }}" class="text-decoration-none fw-bold text-primary">{{ o.order_number }}</a></td>
+                            <td>{{ o.table_rel.table_number if o.table_rel else "POS Walk-in" }}</td>
+                            <td class="fw-bold">{{ o.grand_total | currency }}</td>
+                            <td>
+                                {% if o.payment_status == "Paid" %}
+                                <span class="badge bg-success rounded-pill">Paid</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark rounded-pill">Unpaid</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Expenses -->
+    <div class="col-md-6">
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold mb-3">Recent Expense Logs</h5>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Expense Item</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in recent_expenses %}
+                        <tr>
+                            <td class="fw-semibold">{{ e.product_name }}</td>
+                            <td><span class="badge bg-secondary rounded-pill">{{ e.category }}</span></td>
+                            <td class="fw-bold text-danger">{{ e.final_amount | currency }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize Chart.js sales chart
+    const ctx = document.getElementById('salesExpensesChart').getContext('2d');
+    
+    fetch('/api/sales-chart-data')
+        .then(res => res.json())
+        .then(data => {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Sales Revenue (₹)',
+                            data: data.sales,
+                            borderColor: '#FF512F',
+                            backgroundColor: 'rgba(255, 81, 47, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Daily Expenses (₹)',
+                            data: data.expenses,
+                            borderColor: '#DD2476',
+                            backgroundColor: 'rgba(221, 36, 118, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    family: 'Plus Jakarta Sans',
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        });
+</script>
+{% endblock %}

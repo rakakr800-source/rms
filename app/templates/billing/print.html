@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill Print #{{ order.order_number }}</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            color: #000;
+            background: #fff;
+            margin: 0;
+            padding: 10px;
+            font-size: 12px;
+        }
+        
+        .receipt-container {
+            max-width: 280px; /* Standard 80mm thermal width */
+            margin: 0 auto;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .divider {
+            border-top: 1px dashed #000;
+            margin: 10px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 4px 0;
+            vertical-align: top;
+        }
+        
+        .fw-bold {
+            font-weight: bold;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+
+    <div class="receipt-container">
+        <div class="text-center">
+            <h3>{{ get_setting('restaurant_name', 'THE ROYAL SWAD') }}</h3>
+            <p>{{ get_setting('address', '') }}</p>
+            <p>GSTIN: {{ get_setting('gst_number', '') }}</p>
+            <p>Phone: {{ get_setting('phone', '') }}</p>
+        </div>
+        
+        <div class="divider"></div>
+        
+        <table>
+            <tr>
+                <td>Bill No: {{ order.order_number }}</td>
+                <td class="text-right">Table: {{ order.table_rel.table_number if order.table_rel else "Walk-In" }}</td>
+            </tr>
+            <tr>
+                <td colspan="2">Date: {{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            </tr>
+            <tr>
+                <td colspan="2">Cust Mobile: {{ order.customer_mobile or "N/A" }}</td>
+            </tr>
+        </table>
+        
+        <div class="divider"></div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th align="left">Item</th>
+                    <th align="right">Qty</th>
+                    <th align="right">Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.items %}
+                <tr>
+                    <td>{{ item.item_name }}</td>
+                    <td align="right">{{ item.quantity }}</td>
+                    <td align="right">₹{{ item.subtotal }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="divider"></div>
+        
+        <table>
+            <tr>
+                <td>Subtotal:</td>
+                <td class="text-right">₹{{ order.subtotal }}</td>
+            </tr>
+            <tr>
+                <td>GST Taxes:</td>
+                <td class="text-right">₹{{ order.gst_amount }}</td>
+            </tr>
+            {% if order.round_off != 0 %}
+            <tr>
+                <td>Round Off:</td>
+                <td class="text-right">₹{{ order.round_off }}</td>
+            </tr>
+            {% endif %}
+            <tr class="fw-bold">
+                <td>GRAND TOTAL:</td>
+                <td class="text-right" style="font-size: 14px;">₹{{ order.grand_total }}</td>
+            </tr>
+        </table>
+        
+        <div class="divider"></div>
+        
+        <div class="text-center" style="margin-top: 15px;">
+            <p>THANK YOU! PLEASE VISIT AGAIN!</p>
+            <small>UPI Payment scan QR on main bill.</small>
+        </div>
+    </div>
+
+</body>
+</html>

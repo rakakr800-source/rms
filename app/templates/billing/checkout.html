@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h3 class="fw-bold mb-1">Process Checkout Register</h3>
+        <p class="text-muted">Process payment for Order: <b class="text-primary">{{ order.order_number }}</b></p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Ticket Summary -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold mb-3 border-bottom pb-2">Ticket Summary</h5>
+            
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted">Table / Guest</span>
+                    <span class="fw-bold">{{ order.table_rel.table_number if order.table_rel else "POS Walk-In" }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted">Customer Name</span>
+                    <span class="fw-semibold">{{ order.customer_name or "Walk-In Guest" }}</span>
+                </div>
+            </div>
+            
+            <ul class="list-group list-group-flush mb-4">
+                {% for item in order.items %}
+                <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center border-0">
+                    <div>
+                        <span class="fw-bold text-muted">{{ item.quantity }}x</span> {{ item.item_name }}
+                    </div>
+                    <span class="fw-semibold">{{ item.subtotal | currency }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            
+            <div class="border-top pt-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted">Subtotal</span>
+                    <span class="fw-bold">{{ order.subtotal | currency }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted">GST Tax</span>
+                    <span class="fw-bold text-warning">{{ order.gst_amount | currency }}</span>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="h6 mb-0 fw-bold">Grand Total</span>
+                    <span class="h5 mb-0 fw-extrabold text-danger">{{ order.grand_total | currency }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Payment Selector Form -->
+    <div class="col-lg-7">
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold mb-4 border-bottom pb-2">Select Payment Method</h5>
+            
+            <form method="POST" action="">
+                <div class="row row-cols-2 g-3 mb-4">
+                    <!-- Cash -->
+                    <div class="col">
+                        <input type="radio" class="btn-check" name="payment_method" id="pay-cash" value="Cash" checked>
+                        <label class="btn btn-outline-primary w-100 py-3 d-flex flex-column align-items-center gap-2" for="pay-cash">
+                            <i class="bi bi-cash-stack fs-3"></i>
+                            <span class="fw-bold">CASH PAYMENT</span>
+                        </label>
+                    </div>
+                    
+                    <!-- UPI -->
+                    <div class="col">
+                        <input type="radio" class="btn-check" name="payment_method" id="pay-upi" value="UPI">
+                        <label class="btn btn-outline-primary w-100 py-3 d-flex flex-column align-items-center gap-2" for="pay-upi">
+                            <i class="bi bi-qr-code fs-3"></i>
+                            <span class="fw-bold">UPI / QR SCAN</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Card -->
+                    <div class="col">
+                        <input type="radio" class="btn-check" name="payment_method" id="pay-card" value="Card">
+                        <label class="btn btn-outline-primary w-100 py-3 d-flex flex-column align-items-center gap-2" for="pay-card">
+                            <i class="bi bi-credit-card fs-3"></i>
+                            <span class="fw-bold">CARD TRANSACTION</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Split -->
+                    <div class="col">
+                        <input type="radio" class="btn-check" name="payment_method" id="pay-split" value="Split">
+                        <label class="btn btn-outline-primary w-100 py-3 d-flex flex-column align-items-center gap-2" for="pay-split">
+                            <i class="bi bi-ui-checks-grid fs-3"></i>
+                            <span class="fw-bold">SPLIT PAYMENT</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- SPLIT PAYMENT INPUTS BOX -->
+                <div class="card bg-light border-0 p-3 mb-4" id="split-inputs-box" style="display: none;">
+                    <h6 class="fw-bold mb-3 text-secondary">Split Payment Calculator</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">CASH PORTION</label>
+                            <input type="number" step="0.01" class="form-control" name="split_cash" id="split-cash-field" value="0.00" oninput="calculateSplitTotal()">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">UPI PORTION</label>
+                            <input type="number" step="0.01" class="form-control" name="split_upi" id="split-upi-field" value="0.00" oninput="calculateSplitTotal()">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-muted">CARD PORTION</label>
+                            <input type="number" step="0.01" class="form-control" name="split_card" id="split-card-field" value="0.00" oninput="calculateSplitTotal()">
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="small text-muted fw-bold">Sum of Portions:</span>
+                        <span id="split-sum-display" class="fw-extrabold text-danger">₹0.00</span>
+                    </div>
+                    <div class="text-end small text-muted mt-1" id="split-remaining-display">Remaining: ₹{{ order.grand_total }}</div>
+                </div>
+                
+                <button type="submit" class="btn btn-gradient w-100 py-3 fs-5" id="process-checkout-btn">
+                    <i class="bi bi-check-circle-fill me-2"></i> COMPLETE SALES TRANSACTION
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const paySplit = document.getElementById('pay-split');
+    const splitBox = document.getElementById('split-inputs-box');
+    const paymentRadios = document.getElementsByName('payment_method');
+    const grandTotal = {{ order.grand_total }};
+    
+    // Toggle split calculator display
+    for(let r of paymentRadios) {
+        r.addEventListener('change', () => {
+            if (paySplit.checked) {
+                splitBox.style.display = 'block';
+                calculateSplitTotal();
+            } else {
+                splitBox.style.display = 'none';
+            }
+        });
+    }
+    
+    // Calculator validator
+    window.calculateSplitTotal = function() {
+        const cash = parseFloat(document.getElementById('split-cash-field').value || 0);
+        const upi = parseFloat(document.getElementById('split-upi-field').value || 0);
+        const card = parseFloat(document.getElementById('split-card-field').value || 0);
+        
+        const sum = cash + upi + card;
+        document.getElementById('split-sum-display').innerText = '₹' + sum.toFixed(2);
+        
+        const rem = grandTotal - sum;
+        const remBox = document.getElementById('split-remaining-display');
+        remBox.innerText = 'Remaining: ₹' + rem.toFixed(2);
+        
+        const checkoutBtn = document.getElementById('process-checkout-btn');
+        if (Math.abs(rem) > 0.05) {
+            checkoutBtn.disabled = true;
+            remBox.classList.add('text-danger');
+            remBox.classList.remove('text-success');
+        } else {
+            checkoutBtn.disabled = false;
+            remBox.classList.remove('text-danger');
+            remBox.classList.add('text-success');
+        }
+    }
+</script>
+{% endblock %}

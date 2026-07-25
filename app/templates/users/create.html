@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h3 class="fw-bold mb-1">{{ title }}</h3>
+        <p class="text-muted">Configure profile credentials, access permissions, and biometric authentication status.</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('users.list_users') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Staff Directory</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card card-custom p-4">
+            <h5 class="fw-bold mb-4 border-bottom pb-2">Profile & Role Configurations</h5>
+            
+            <form method="POST" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+                
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">EMPLOYEE ID</label>
+                        {{ form.employee_id(class="form-control", placeholder="e.g. EMP105") }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">EMPLOYEE NAME</label>
+                        {{ form.name(class="form-control", placeholder="e.g. Rahul Sharma") }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">USERNAME</label>
+                        {{ form.username(class="form-control", placeholder="Login username") }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">PASSWORD</label>
+                        {{ form.password(class="form-control", placeholder="Leave blank to keep unchanged on edit") }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">EMAIL ADDRESS</label>
+                        {{ form.email(class="form-control", placeholder="rahul@restaurant.com") }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">MOBILE NUMBER</label>
+                        {{ form.mobile(class="form-control", placeholder="+91 99999 88888") }}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">SYSTEM ROLE</label>
+                        {{ form.role(class="form-select", id="role-select") }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">SHIFT SCHEDULE</label>
+                        {{ form.shift(class="form-select") }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">ACCOUNT STATUS</label>
+                        {{ form.status(class="form-select") }}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">JOINING DATE</label>
+                        {{ form.joining_date(class="form-control", type="date") }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">PROFILE PHOTO</label>
+                        {{ form.photo(class="form-control") }}
+                    </div>
+                </div>
+                
+                <!-- CUSTOM PERMISSIONS DRAWER -->
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3 text-secondary border-bottom pb-2">Custom Role Permissions</h6>
+                    <div class="row g-3" id="permissions-grid">
+                        {% set active_perms = user.get_permissions_list() if user else [] %}
+                        {% for mod in ['dashboard', 'users', 'attendance', 'expenses', 'suppliers', 'inventory', 'menu', 'tables', 'orders', 'kitchen', 'billing', 'customers', 'reports', 'settings'] %}
+                        <div class="col-md-4 col-sm-6">
+                            <div class="form-check form-switch p-3 bg-light bg-opacity-50 rounded-3 border">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" name="user_permissions" value="{{ mod }}" id="perm-{{ mod }}"
+                                    {% if mod in active_perms or (user and user.role == 'Admin') %}checked{% endif %}>
+                                <label class="form-check-label fw-bold text-dark text-capitalize" for="perm-{{ mod }}">{{ mod }}</label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {{ form.submit(class="btn btn-gradient w-100 py-3 mt-3 fs-5") }}
+            </form>
+        </div>
+    </div>
+    
+    <!-- RIGHT BIOMETRICS REGISTRATION PANEL -->
+    {% if user %}
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 text-center">
+            <h5 class="fw-bold mb-2">Fingerprint Biometrics</h5>
+            <p class="text-muted small">Register device credential (fingerprint/face id) directly from user phone browser.</p>
+            
+            <div class="py-4 text-warning">
+                <i class="bi bi-fingerprint" style="font-size: 5rem;"></i>
+            </div>
+            
+            {% if user.fingerprint_enabled %}
+            <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 mb-3 fw-bold"><i class="bi bi-check-circle"></i> Biometric Enabled</span>
+            {% else %}
+            <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3 py-2 mb-3 fw-bold">Not Configured</span>
+            {% endif %}
+            
+            {% if current_user.id == user.id %}
+            <button class="btn btn-outline-primary w-100 py-2" id="enroll-biometrics-btn">
+                <i class="bi bi-plus-lg me-2"></i> Register Biometric Key
+            </button>
+            {% else %}
+            <small class="text-muted">Biometric key enrollment must be executed by the employee from their own session.</small>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Autofill checkboxes depending on role selection defaults
+    const roleSelect = document.getElementById('role-select');
+    const permDefaults = {{ permissions | tojson | safe if permissions else '{}' }};
+    
+    if (roleSelect && permDefaults) {
+        roleSelect.addEventListener('change', function() {
+            const role = this.value;
+            const perms = permDefaults[role] || [];
+            
+            document.querySelectorAll('input[name="user_permissions"]').forEach(cb => {
+                if (perms.includes(cb.value)) {
+                    cb.checked = true;
+                } else {
+                    cb.checked = false;
+                }
+            });
+        });
+    }
+
+    // Enroll biometrics handler via WebAuthn API
+    const enrollBtn = document.getElementById('enroll-biometrics-btn');
+    if (enrollBtn) {
+        enrollBtn.addEventListener('click', async function() {
+            try {
+                // 1. Get options from server
+                const optionsRes = await fetch('/webauthn/register/options', { method: 'POST' });
+                const options = await optionsRes.json();
+                
+                // Helper to decode base64
+                function bufferDecode(value) {
+                    return Uint8Array.from(atob(value), c => c.charCodeAt(0));
+                }
+                
+                options.challenge = bufferDecode(options.challenge);
+                options.user.id = bufferDecode(options.user.id);
+                
+                // 2. Query authenticator
+                const credential = await navigator.credentials.create({ publicKey: options });
+                
+                function bufferEncode(value) {
+                    return btoa(String.fromCharCode.apply(null, new Uint8Array(value)));
+                }
+                
+                const credentialResponse = {
+                    id: credential.id,
+                    rawId: bufferEncode(credential.rawId),
+                    type: credential.type,
+                    publicKey: bufferEncode(credential.response.getPublicKey()),
+                    response: {
+                        clientDataJSON: bufferEncode(credential.response.clientDataJSON),
+                        attestationObject: bufferEncode(credential.response.attestationObject)
+                    }
+                };
+                
+                // 3. Post back verification details
+                const verifyRes = await fetch('/webauthn/register/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(credentialResponse)
+                });
+                
+                const result = await verifyRes.json();
+                if (result.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Device Registered!',
+                        text: result.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Registration Failed',
+                    text: err.message || 'Make sure your browser/device biometrics hardware is enabled.'
+                });
+            }
+        });
+    }
+</script>
+{% endblock %}

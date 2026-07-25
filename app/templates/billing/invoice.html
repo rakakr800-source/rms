@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4 no-print">
+    <div>
+        <h3 class="fw-bold mb-1">Invoice Receipt</h3>
+        <p class="text-muted">Invoice No: <b class="text-primary">{{ order.order_number }}</b> | Paid via {{ order.payment_method }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('billing.index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Cashier Register</a>
+        <button class="btn btn-success" onclick="window.print()"><i class="bi bi-printer"></i> Print Invoice (A4)</button>
+        <a href="{{ url_for('billing.print_invoice', order_id=order.id, format='thermal') }}" target="_blank" class="btn btn-primary"><i class="bi bi-receipt"></i> Print Thermal (80mm)</a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <!-- RENDER INVOICE RECEIPT SHAPE -->
+        <div class="card card-custom p-5 border shadow-sm bg-white text-dark" id="printable-receipt">
+            <!-- Restaurant Header -->
+            <div class="text-center mb-4">
+                <h4 class="fw-extrabold mb-1">{{ get_setting('restaurant_name', 'THE ROYAL SWAD') }}</h4>
+                <p class="text-muted small mb-0">{{ get_setting('address', 'Market Road, Sec 15, New Delhi') }}</p>
+                <p class="text-muted small mb-1">GSTIN: <b>{{ get_setting('gst_number', '07AAAAA1111A1Z1') }}</b> | Phone: {{ get_setting('phone', '') }}</p>
+                <hr class="my-3">
+                <h6 class="text-uppercase fw-bold letter-spacing-1">Tax Invoice / Bill Statement</h6>
+            </div>
+            
+            <!-- Metadata columns -->
+            <div class="row g-3 small mb-4">
+                <div class="col-6">
+                    <div class="text-muted">INVOICE NO:</div>
+                    <div class="fw-bold text-dark">{{ order.order_number }}</div>
+                    <div class="text-muted mt-2">DATE & TIME:</div>
+                    <div class="fw-bold text-dark">{{ order.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                </div>
+                <div class="col-6 text-end">
+                    <div class="text-muted">TABLE / GUEST:</div>
+                    <div class="fw-bold text-dark">{{ order.table_rel.table_number if order.table_rel else "POS Walk-In" }}</div>
+                    <div class="text-muted mt-2">CUSTOMER PHONE:</div>
+                    <div class="fw-bold text-dark">{{ order.customer_mobile or "Walk-In Guest" }}</div>
+                </div>
+            </div>
+            
+            <!-- Items Statement -->
+            <table class="table align-middle small mb-4">
+                <thead>
+                    <tr class="border-bottom text-muted">
+                        <th>Product / Qty</th>
+                        <th class="text-end">Rate</th>
+                        <th class="text-end">GST %</th>
+                        <th class="text-end">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.items %}
+                    <tr class="border-0">
+                        <td>
+                            <div class="fw-bold text-dark">{{ item.item_name }}</div>
+                            <small class="text-muted">{{ item.quantity }} x {{ item.rate | currency }}</small>
+                        </td>
+                        <td class="text-end text-dark">{{ item.rate | currency }}</td>
+                        <td class="text-end text-dark">{{ item.gst_percent }}%</td>
+                        <td class="text-end fw-bold text-dark">{{ item.subtotal | currency }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Subtotals and grand totals -->
+            <div class="row justify-content-end mb-4">
+                <div class="col-md-6 col-8">
+                    <div class="d-flex justify-content-between align-items-center mb-1 small text-muted">
+                        <span>Base Subtotal</span>
+                        <span>{{ order.subtotal | currency }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-1 small text-muted">
+                        <span>GST Tax Amount</span>
+                        <span>{{ order.gst_amount | currency }}</span>
+                    </div>
+                    {% if order.round_off != 0 %}
+                    <div class="d-flex justify-content-between align-items-center mb-1 small text-muted">
+                        <span>Round Off Difference</span>
+                        <span>{{ order.round_off | currency }}</span>
+                    </div>
+                    {% endif %}
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-dark h6">Grand Total Paid</span>
+                        <span class="fw-extrabold text-danger h5 mb-0">{{ order.grand_total | currency }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- QR code and parting message -->
+            <hr class="my-4">
+            <div class="row align-items-center">
+                <div class="col-sm-8 text-center text-sm-start">
+                    <h6 class="fw-bold mb-1">Scan & Pay securely</h6>
+                    <p class="text-muted small mb-0">Use any UPI app (GPay, PhonePe, Paytm) to complete contactless counter payments.</p>
+                </div>
+                <div class="col-sm-4 text-center mt-3 mt-sm-0">
+                    <img src="data:image/png;base64,{{ qr_base64 }}" class="img-fluid" width="100" height="100" alt="UPI QR">
+                </div>
+            </div>
+            
+            <div class="text-center mt-4 text-muted small pt-3 border-top">
+                <p class="mb-0 fw-semibold">Thank you for dining with us! Please visit again!</p>
+                <small class="text-muted">Powered by Premium Commercial RMS Web POS</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Print-only CSS layout adjustments -->
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #printable-receipt, #printable-receipt * {
+            visibility: visible;
+        }
+        #printable-receipt {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+
+{% endblock %}
