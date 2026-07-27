@@ -35,19 +35,40 @@
         }
         
         /* Modern Collapsible Sidebar */
-        #sidebar {
-            width: var(--sidebar-width);
-            min-width: var(--sidebar-width);
-            background: var(--sidebar-bg);
-            color: #fff;
-            min-height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1000;
-            transition: all 0.3s ease;
-            box-shadow: 4px 0 10px rgba(0,0,0,0.1);
-        }
+       #sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    color: #fff;
+
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    z-index:1000;
+    overflow:hidden;
+
+    box-shadow:4px 0 10px rgba(0,0,0,0.1);
+}
+
+
+/* Menu scrolling area */
+#sidebar > .flex-grow-1 {
+    overflow-y:auto;
+    min-height:0;
+}
+#sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 10px;
+}
         
         #sidebar .logo {
             padding: 20px;
@@ -170,17 +191,17 @@
         
         /* Mobile responsive adjustments */
         @media (max-width: 991.98px) {
-            #sidebar {
-                margin-left: calc(-1 * var(--sidebar-width));
-            }
-            #sidebar.active {
-                margin-left: 0;
-            }
-            #content {
-                margin-left: 0;
-                width: 100%;
-            }
-        }
+    #sidebar {
+        margin-left: calc(-1 * var(--sidebar-width));
+    }
+    #sidebar.active {
+        margin-left: 0;
+    }
+    #content {
+        margin-left: 0;
+        width: 100%;
+    }
+}
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -193,7 +214,7 @@
             <button class="btn d-lg-none text-white border-0" id="sidebar-close-btn"><i class="bi bi-x-lg"></i></button>
         </div>
         
-        <div class="flex-grow-1 overflow-y-auto mt-3">
+        <div class="flex-grow-1 mt-3">
             <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
                 <i class="bi bi-grid-1x2-fill"></i> Dashboard
             </a>
