@@ -1,7 +1,15 @@
 from app import create_app, db
-from app.models import User, ExpenseCategory, Category, RestaurantTable, MenuItem, Product, RestaurantSetting
+from app.models import (
+    User,
+    ExpenseCategory,
+    Category,
+    RestaurantTable,
+    MenuItem,
+    Product,
+    RestaurantSetting
+)
 from werkzeug.security import generate_password_hash
-from datetime import date, datetime
+from datetime import date
 
 app = create_app()
 
@@ -134,7 +142,8 @@ def seed_database():
         db.session.commit()
         print("Database successfully seeded with commercial sample records!")
 
-if __name__ == '__main__':
-    seed_database()
-    # Run the server on port 5000
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == "__main__":
+    with app.app_context():
+        seed_database()
+
+    app.run(debug=True)
