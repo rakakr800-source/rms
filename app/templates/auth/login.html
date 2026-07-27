@@ -165,105 +165,255 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
     
-    <!-- Dynamic Fingerprint Login Support using Javascript WebAuthn -->
-    <script>
-        document.getElementById('biometric-login-btn').addEventListener('click', async function() {
-            const username = document.getElementById('username-field').value.trim();
-            if(!username) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Username Required',
-                    text: 'Please enter your username first to retrieve registered biometric credentials.',
-                    background: '#1e1b4b',
-                    color: '#fff',
-                    confirmButtonColor: '#DD2476'
-                });
-                return;
+      <!-- Dynamic Fingerprint Login Support using Javascript WebAuthn -->
+<script>
+document.getElementById('biometric-login-btn').addEventListener('click', async function() {
+
+    const username = document.getElementById('username-field').value.trim();
+
+    if(!username) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Username Required',
+            text: 'Please enter your username first to retrieve registered biometric credentials.',
+            background: '#1e1b4b',
+            color: '#fff',
+            confirmButtonColor: '#DD2476'
+        });
+        return;
+    }
+
+    try {
+
+        // Browser support check
+        if (!window.PublicKeyCredential) {
+            throw new Error("Biometric authentication is not supported on this browser.");
+        }
+
+
+        // 1. Get login options from server
+        const optionsRes = await fetch('/webauthn/login/options', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username
+            })
+        });
+
+
+        if (!optionsRes.ok) {
+
+            const errorObj = await optionsRes.json();
+
+            throw new Error(
+                errorObj.message || "Failed to retrieve biometric options"
+            );
+        }
+
+
+        const options = await optionsRes.json();
+
+
+        console.log("WebAuthn Login Options:", options);
+
+
+
+        // Base64URL decode
+        function bufferDecode(value) {
+
+            if(!value) {
+                throw new Error("Invalid biometric data received from server.");
             }
 
-            try {
-                // 1. Fetch challenge parameters from back end
-                const optionsRes = await fetch('/webauthn/login/options', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({username: username})
-                });
-                
-                if (!optionsRes.ok) {
-                    const errorObj = await optionsRes.json();
-                    throw new Error(errorObj.message || "Failed to retrieve options");
-                }
-                
-                const options = await optionsRes.json();
-                
-                // Decode helper
-                function bufferDecode(value) {
-                    return Uint8Array.from(atob(value), c => c.charCodeAt(0));
-                }
-                
-                // Format challenge and credential list for WebAuthn API
-                options.challenge = bufferDecode(options.challenge);
-                options.allowCredentials = options.allowCredentials.map(c => {
-                    c.id = bufferDecode(c.id);
-                    return c;
-                });
-                
-                // 2. Query browser device authenticator
-                const assertion = await navigator.credentials.get({publicKey: options});
-                
-                // Helper to encode response to transmit to server
-                function bufferEncode(value) {
-                    return btoa(String.fromCharCode.apply(null, new Uint8Array(value)));
-                }
-                
-                const credentialResponse = {
-                    id: assertion.id,
-                    rawId: bufferEncode(assertion.rawId),
-                    type: assertion.type,
-                    response: {
-                        authenticatorData: bufferEncode(assertion.response.authenticatorData),
-                        clientDataJSON: bufferEncode(assertion.response.clientDataJSON),
-                        signature: bufferEncode(assertion.response.signature),
-                        userHandle: assertion.response.userHandle ? bufferEncode(assertion.response.userHandle) : null
-                    }
-                };
-                
-                // 3. Post back for validation and sign-in
-                const verifyRes = await fetch('/webauthn/login/verify', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(credentialResponse)
-                });
-                
-                const result = await verifyRes.json();
-                if (result.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Authenticated!',
-                        text: 'Biometric authorization successful. Redirecting...',
-                        background: '#1e1b4b',
-                        color: '#fff',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                    setTimeout(() => {
-                        window.location.href = '/';
-                    }, 1500);
-                } else {
-                    throw new Error(result.message);
-                }
-                
-            } catch (err) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Biometric Error',
-                    text: err.message || 'WebAuthn API verification failed on this device.',
-                    background: '#1e1b4b',
-                    color: '#fff',
-                    confirmButtonColor: '#DD2476'
-                });
+
+            value = value
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+
+
+            while(value.length % 4) {
+                value += '=';
             }
+
+
+            return Uint8Array.from(
+                atob(value),
+                c => c.charCodeAt(0)
+            );
+        }
+
+
+
+        // Convert challenge
+        options.challenge = bufferDecode(options.challenge);
+
+
+
+        // Convert credentials
+        if(options.allowCredentials && options.allowCredentials.length > 0) {
+
+            options.allowCredentials = options.allowCredentials.map(c => {
+
+                c.id = bufferDecode(c.id);
+
+                return c;
+
+            });
+
+        }
+
+
+
+        // 2. Ask device biometric
+        const assertion = await navigator.credentials.get({
+            publicKey: options
         });
-    </script>
+
+
+
+        if(!assertion) {
+            throw new Error("No biometric credential found.");
+        }
+
+
+
+        // Base64URL encode
+        function bufferEncode(value) {
+
+            return btoa(
+                String.fromCharCode(...new Uint8Array(value))
+            )
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+
+        }
+
+
+
+        // Prepare response
+        const credentialResponse = {
+
+            id: assertion.id,
+
+            rawId: bufferEncode(
+                assertion.rawId
+            ),
+
+            type: assertion.type,
+
+
+            response: {
+
+                authenticatorData: bufferEncode(
+                    assertion.response.authenticatorData
+                ),
+
+                clientDataJSON: bufferEncode(
+                    assertion.response.clientDataJSON
+                ),
+
+                signature: bufferEncode(
+                    assertion.response.signature
+                ),
+
+                userHandle: assertion.response.userHandle
+                    ? bufferEncode(assertion.response.userHandle)
+                    : null
+
+            }
+
+        };
+
+
+
+        // 3. Verify with server
+        const verifyRes = await fetch('/webauthn/login/verify', {
+
+            method: 'POST',
+
+            headers: {
+                'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify(
+                credentialResponse
+            )
+
+        });
+
+
+
+        const result = await verifyRes.json();
+
+
+
+        if(result.status === 'success') {
+
+
+            Swal.fire({
+
+                icon: 'success',
+
+                title: 'Authenticated!',
+
+                text: 'Biometric authorization successful. Redirecting...',
+
+                background: '#1e1b4b',
+
+                color: '#fff',
+
+                timer: 1500,
+
+                showConfirmButton: false
+
+            });
+
+
+            setTimeout(() => {
+
+                window.location.href = '/';
+
+            },1500);
+
+
+        } else {
+
+            throw new Error(
+                result.message || "Biometric verification failed"
+            );
+
+        }
+
+
+
+    } catch(err) {
+
+
+        console.error("Biometric Error:", err);
+
+
+        Swal.fire({
+
+            icon:'error',
+
+            title:'Biometric Error',
+
+            text: err.message || 'WebAuthn verification failed.',
+
+            background:'#1e1b4b',
+
+            color:'#fff',
+
+            confirmButtonColor:'#DD2476'
+
+        });
+
+    }
+
+});
+</script>
 </body>
 </html>
