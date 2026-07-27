@@ -57,10 +57,68 @@
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(221, 36, 118, 0.15);
     }
+
+    /* Mobile / Tablet Responsive Styles */
+    @media (max-width: 991.98px) {
+        .pos-container {
+            flex-direction: column;
+            height: calc(100vh - 190px);
+            gap: 10px;
+            overflow: hidden;
+        }
+        
+        .pos-ticket-panel {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+        
+        .pos-menu-panel {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+
+        .pos-ticket-panel.mobile-hidden,
+        .pos-menu-panel.mobile-hidden {
+            display: none !important;
+        }
+
+        .card-custom {
+            padding: 10px !important;
+            margin-bottom: 10px !important;
+        }
+    }
+
+    /* Mobile Switcher Custom Pills */
+    #pos-mobile-tabs .nav-link {
+        color: #6c757d;
+        border-radius: 8px;
+        transition: all 0.2s ease-in-out;
+    }
+    #pos-mobile-tabs .nav-link.active {
+        background: var(--primary-gradient);
+        color: white;
+        box-shadow: 0 4px 10px rgba(221, 36, 118, 0.2);
+    }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Mobile Switcher Tabs (Visible on mobile/tablet only) -->
+<div class="d-lg-none mb-3">
+    <div class="nav nav-pills nav-fill bg-white p-1 rounded-3 shadow-sm border" id="pos-mobile-tabs" role="tablist">
+        <button class="nav-link active py-2 fw-bold" id="tab-menu" type="button" role="tab">
+            <i class="bi bi-grid-3x3-gap-fill me-2"></i>MENU CATALOG
+        </button>
+        <button class="nav-link py-2 fw-bold" id="tab-cart" type="button" role="tab">
+            <i class="bi bi-cart3 me-2"></i>CART BILLING <span class="badge bg-danger rounded-pill ms-1" id="mobile-cart-count">0</span>
+        </button>
+    </div>
+</div>
+
 <div class="pos-container">
     
     <!-- LEFT PANEL: CART & KOT BUILDER -->
@@ -164,7 +222,8 @@
             <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-3" id="menu-items-grid">
                 {% for item in menu_items %}
                 <div class="col menu-tile" data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}" data-gst="{{ item.gst_percent }}" data-category="{{ item.category }}">
-                    <div class="card menu-item-card h-100 p-2">
+                    <div class="card menu-item-card h-100 p-2 position-relative">
+                        <span class="badge bg-dark bg-opacity-75 rounded-pill position-absolute" style="top: 12px; left: 12px; font-size: 0.65rem; z-index: 10;">{{ item.code }}</span>
                         {% if item.image %}
                         <img src="{{ url_for('static', filename=item.image) }}" class="card-img-top rounded-3" style="height: 110px; object-fit: cover;" alt="{{ item.name }}">
                         {% else %}
@@ -176,7 +235,7 @@
                             <h6 class="card-title text-truncate fw-bold mb-1" style="font-size: 0.9rem;">{{ item.name }}</h6>
                             <div class="d-flex justify-content-between align-items-center mt-1">
                                 <span class="fw-extrabold text-danger" style="font-size: 0.95rem;">₹{{ item.price }}</span>
-                                <span class="badge bg-secondary rounded-pill" style="font-size: 0.7rem;">Code: {{ item.code }}</span>
+                                <button class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2" style="font-size: 0.75rem;"><i class="bi bi-plus-lg"></i> Add</button>
                             </div>
                         </div>
                     </div>
@@ -258,11 +317,17 @@
             </div>
         `;
         updateTotals(0, 0);
+        
+        const mobileCartBadge = document.getElementById('mobile-cart-count');
+        if (mobileCartBadge) {
+            mobileCartBadge.textContent = 0;
+        }
         return;
     }
 
     let subtotal = 0;
     let gstTotal = 0;
+    let totalItemsCount = 0;
 
     cart.forEach((item, index) => {
         const itemSub = item.price * item.quantity;
@@ -270,6 +335,7 @@
 
         subtotal += itemSub;
         gstTotal += itemGst;
+        totalItemsCount += item.quantity;
 
         const row = document.createElement('div');
         row.className = 'd-flex justify-content-between align-items-center mb-3 pb-3 border-bottom';
@@ -297,6 +363,11 @@
     });
 
     updateTotals(subtotal, gstTotal);
+
+    const mobileCartBadge = document.getElementById('mobile-cart-count');
+    if (mobileCartBadge) {
+        mobileCartBadge.textContent = totalItemsCount;
+    }
 }
     // ============================
 // CART FUNCTIONS
@@ -444,5 +515,45 @@ document.getElementById("clear-cart-btn").addEventListener("click", function () 
             }
         });
     });
+
+    // Mobile Tab Navigation Logic
+    const tabMenu = document.getElementById('tab-menu');
+    const tabCart = document.getElementById('tab-cart');
+    const ticketPanel = document.querySelector('.pos-ticket-panel');
+    const menuPanel = document.querySelector('.pos-menu-panel');
+
+    function updateMobileLayout() {
+        if (window.innerWidth < 992) {
+            if (tabMenu && tabMenu.classList.contains('active')) {
+                ticketPanel.classList.add('mobile-hidden');
+                menuPanel.classList.remove('mobile-hidden');
+            } else {
+                ticketPanel.classList.remove('mobile-hidden');
+                menuPanel.classList.add('mobile-hidden');
+            }
+        } else {
+            // Restore visibility for desktop
+            if (ticketPanel) ticketPanel.classList.remove('mobile-hidden');
+            if (menuPanel) menuPanel.classList.remove('mobile-hidden');
+        }
+    }
+
+    if (tabMenu && tabCart) {
+        tabMenu.addEventListener('click', function() {
+            tabMenu.classList.add('active');
+            tabCart.classList.remove('active');
+            updateMobileLayout();
+        });
+
+        tabCart.addEventListener('click', function() {
+            tabCart.classList.add('active');
+            tabMenu.classList.remove('active');
+            updateMobileLayout();
+        });
+
+        window.addEventListener('resize', updateMobileLayout);
+        // Initial setup
+        updateMobileLayout();
+    }
 </script>
 {% endblock %}
