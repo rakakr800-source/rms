@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from app.models import db, Order, OrderItem, MenuItem, RestaurantTable, Customer
-from app.utils.decorators import permission_required
+from app.models import db, Order, OrderItem, MenuItem, RestaurantTable, Customer, User
+from app.utils.decorators import permission_required, role_required
 from app.utils.helpers import log_activity, trigger_notification
 from datetime import datetime
 import json
