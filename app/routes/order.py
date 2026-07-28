@@ -279,6 +279,14 @@ def create_order_api():
     customer_id = data.get('customer_id') or None
     customer_name = data.get('customer_name')
     customer_mobile = data.get('customer_mobile')
+    
+    if customer_id:
+        from app.models import Customer
+        customer_obj = Customer.query.get(customer_id)
+        if customer_obj:
+            customer_name = customer_obj.name
+            customer_mobile = customer_obj.phone
+
     order_type = data.get('order_type', 'Dine In') # Dine In, Take Away, Delivery
     notes = data.get('notes')
     cart = data.get('cart', []) # array of {menu_item_id, quantity, notes}
