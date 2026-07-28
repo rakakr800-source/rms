@@ -36,7 +36,8 @@ def export_report(report_type):
             orders = Order.query.filter(
                 func.date(Order.created_at) >= start_date,
                 func.date(Order.created_at) <= end_date,
-                Order.payment_status == 'Paid'
+                Order.payment_status == 'Paid',
+                Order.kitchen_status != 'Cancelled'
             ).all()
             
             writer.writerow(["Invoice Number", "Date", "Customer Name", "Customer Mobile", "Order Type", "Subtotal", "GST Amount", "Discount", "Round Off", "Grand Total", "Payment Method"])

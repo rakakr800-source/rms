@@ -19,10 +19,11 @@ def index():
     # ----------------------------------------------------
     # CARDS & METRICS
     # ----------------------------------------------------
-    # 1. Today's Sales
+    # 1. Today's Sales (excluding Cancelled)
     today_sales_query = db.session.query(func.sum(Order.grand_total)).filter(
         func.date(Order.created_at) == today,
-        Order.payment_status == 'Paid'
+        Order.payment_status == 'Paid',
+        Order.kitchen_status != 'Cancelled'
     ).scalar()
     today_sales = today_sales_query if today_sales_query else 0.0
     
@@ -36,8 +37,8 @@ def index():
     # Simple profit = Sales - Expense (Or with COGS if tracked, but sales - direct expenses is standard daily profit)
     today_profit = today_sales - today_expense
     
-    # 4. Today's Orders
-    today_orders = Order.query.filter(func.date(Order.created_at) == today).count()
+    # 4. Today's Orders (excluding Cancelled)
+    today_orders = Order.query.filter(func.date(Order.created_at) == today, Order.kitchen_status != 'Cancelled').count()
     
     # 5. Pending & Completed Orders
     pending_orders = Order.query.filter(
@@ -58,10 +59,11 @@ def index():
     low_stock_count = Product.query.filter(Product.current_stock <= Product.min_stock).count()
     low_stock_items = Product.query.filter(Product.current_stock <= Product.min_stock).limit(5).all()
     
-    # 8. Monthly Stats
+    # 8. Monthly Stats (excluding Cancelled)
     monthly_sales_query = db.session.query(func.sum(Order.grand_total)).filter(
         Order.created_at >= start_of_month,
-        Order.payment_status == 'Paid'
+        Order.payment_status == 'Paid',
+        Order.kitchen_status != 'Cancelled'
     ).scalar()
     monthly_sales = monthly_sales_query if monthly_sales_query else 0.0
     
@@ -71,9 +73,9 @@ def index():
     monthly_expense = monthly_expense_query if monthly_expense_query else 0.0
     
     # ----------------------------------------------------
-    # RECENT ACTIVITIES & LISTS
+    # RECENT ACTIVITIES & LISTS (excluding Cancelled)
     # ----------------------------------------------------
-    recent_orders = Order.query.order_by(Order.created_at.desc()).limit(5).all()
+    recent_orders = Order.query.filter(Order.kitchen_status != 'Cancelled').order_by(Order.created_at.desc()).limit(5).all()
     recent_expenses = Expense.query.order_by(Expense.date.desc()).limit(5).all()
     
     # Recent Attendance
@@ -115,10 +117,11 @@ def sales_chart_data():
         day = today - timedelta(days=i)
         labels.append(day.strftime('%a (%d %b)'))
         
-        # Sales
+        # Sales (excluding Cancelled)
         day_sales = db.session.query(func.sum(Order.grand_total)).filter(
             func.date(Order.created_at) == day,
-            Order.payment_status == 'Paid'
+            Order.payment_status == 'Paid',
+            Order.kitchen_status != 'Cancelled'
         ).scalar() or 0.0
         sales_data.append(day_sales)
         

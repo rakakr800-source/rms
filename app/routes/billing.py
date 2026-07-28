@@ -13,9 +13,9 @@ billing_bp = Blueprint('billing', __name__)
 @login_required
 @permission_required('billing')
 def index():
-    # Show active unpaid orders for checkout, and list of paid orders
-    unpaid_orders = Order.query.filter_by(payment_status='Unpaid').order_by(Order.created_at.desc()).all()
-    paid_orders = Order.query.filter_by(payment_status='Paid').order_by(Order.created_at.desc()).all()
+    # Show active unpaid orders for checkout, and list of paid orders, excluding Cancelled
+    unpaid_orders = Order.query.filter(Order.payment_status == 'Unpaid', Order.kitchen_status != 'Cancelled').order_by(Order.created_at.desc()).all()
+    paid_orders = Order.query.filter(Order.payment_status == 'Paid', Order.kitchen_status != 'Cancelled').order_by(Order.created_at.desc()).all()
     return render_template('billing/index.html', unpaid_orders=unpaid_orders, paid_orders=paid_orders)
 
 @billing_bp.route('/billing/checkout/<int:order_id>', methods=['GET', 'POST'])
@@ -23,6 +23,9 @@ def index():
 @permission_required('billing')
 def checkout(order_id):
     order = Order.query.get_or_404(order_id)
+    if order.kitchen_status == 'Cancelled':
+        return "Cancelled orders cannot be checked out.", 400
+        
     if order.payment_status == 'Paid':
         flash("This order is already fully paid!", "warning")
         return redirect(url_for('billing.index'))
