@@ -82,6 +82,20 @@ def create_app(config_class=Config):
         except:
             return f"{symbol}{value}"
             
+    @app.template_filter('menu_image')
+    def menu_image_filter(image_path):
+        if not image_path:
+            return "https://cdn-icons-png.flaticon.com/512/3252/3252179.png"
+        if image_path.startswith("http://") or image_path.startswith("https://"):
+            return image_path
+        # Check local file existence in static folder
+        import os
+        full_path = os.path.join(app.static_folder, image_path)
+        if os.path.exists(full_path) and os.path.isfile(full_path):
+            return f"/static/{image_path}"
+        # Fallback beautiful default food image placeholder if missing/deleted from local filesystem
+        return "https://cdn-icons-png.flaticon.com/512/3252/3252179.png"
+            
     # Quick utility to get setting in template
     @app.context_processor
     def inject_settings():

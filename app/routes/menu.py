@@ -33,12 +33,8 @@ def add_menu_item():
         )
         
         if form.image.data:
-            file = form.image.data
-            filename = secure_filename(f"menu_{item.code}_{file.filename}")
-            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'products')
-            os.makedirs(upload_path, exist_ok=True)
-            file.save(os.path.join(upload_path, filename))
-            item.image = f"uploads/products/{filename}"
+            from app.utils.storage import upload_to_persistent_storage
+            item.image = upload_to_persistent_storage(form.image.data, prefix=f"menu_{item.code}")
             
         db.session.add(item)
         db.session.commit()
@@ -65,12 +61,8 @@ def edit_menu_item(id):
         item.status = form.status.data
         
         if form.image.data:
-            file = form.image.data
-            filename = secure_filename(f"menu_{item.code}_{file.filename}")
-            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'products')
-            os.makedirs(upload_path, exist_ok=True)
-            file.save(os.path.join(upload_path, filename))
-            item.image = f"uploads/products/{filename}"
+            from app.utils.storage import upload_to_persistent_storage
+            item.image = upload_to_persistent_storage(form.image.data, prefix=f"menu_{item.code}")
             
         db.session.commit()
         log_activity("Edit Menu Item", "Menu", f"Updated menu item {item.name}")
