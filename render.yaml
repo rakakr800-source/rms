@@ -3,7 +3,7 @@ services:
     name: rms
     runtime: python
 
-    buildCommand: pip install -r requirements.txt && python -m flask db upgrade
+    buildCommand: pip install -r requirements.txt && python run_schema_update.py
 
     startCommand: gunicorn run:app
 
