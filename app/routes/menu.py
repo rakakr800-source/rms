@@ -33,8 +33,12 @@ def add_menu_item():
         )
         
         if form.image.data:
-            from app.utils.storage import upload_to_persistent_storage
-            item.image = upload_to_persistent_storage(form.image.data, prefix=f"menu_{item.code}")
+            from app.utils.storage import upload_to_cloudinary
+            secure_url, public_id = upload_to_cloudinary(form.image.data, folder="menu")
+            item.image_url = secure_url
+            item.image_public_id = public_id
+            # Keep image for legacy fallback
+            item.image = secure_url
             
         db.session.add(item)
         db.session.commit()
@@ -61,8 +65,16 @@ def edit_menu_item(id):
         item.status = form.status.data
         
         if form.image.data:
-            from app.utils.storage import upload_to_persistent_storage
-            item.image = upload_to_persistent_storage(form.image.data, prefix=f"menu_{item.code}")
+            from app.utils.storage import upload_to_cloudinary, delete_from_cloudinary
+            # Delete old image from Cloudinary if exists
+            if item.image_public_id:
+                delete_from_cloudinary(item.image_public_id)
+                
+            secure_url, public_id = upload_to_cloudinary(form.image.data, folder="menu")
+            item.image_url = secure_url
+            item.image_public_id = public_id
+            # Keep image for legacy fallback
+            item.image = secure_url
             
         db.session.commit()
         log_activity("Edit Menu Item", "Menu", f"Updated menu item {item.name}")
@@ -77,6 +89,11 @@ def edit_menu_item(id):
 def delete_menu_item(id):
     item = MenuItem.query.get_or_404(id)
     log_activity("Delete Menu Item", "Menu", f"Deleted menu item {item.name}")
+    
+    if item.image_public_id:
+        from app.utils.storage import delete_from_cloudinary
+        delete_from_cloudinary(item.image_public_id)
+        
     db.session.delete(item)
     db.session.commit()
     flash(f"Menu item {item.name} successfully deleted.", "success")

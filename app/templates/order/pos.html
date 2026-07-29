@@ -224,7 +224,7 @@
                 <div class="col menu-tile" data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}" data-gst="{{ item.gst_percent }}" data-category="{{ item.category }}">
                     <div class="card menu-item-card h-100 p-2 position-relative">
                         <span class="badge bg-dark bg-opacity-75 rounded-pill position-absolute" style="top: 12px; left: 12px; font-size: 0.65rem; z-index: 10;">{{ item.code }}</span>
-                        <img src="{{ item.image | menu_image }}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3252/3252179.png'" class="card-img-top rounded-3" style="height: 110px; object-fit: cover;" alt="{{ item.name }}">
+                        <img src="{{ item.image_url | menu_image }}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3252/3252179.png'" class="card-img-top rounded-3" style="height: 110px; object-fit: cover;" alt="{{ item.name }}">
                         <div class="card-body p-2 d-flex flex-column justify-content-between mt-2">
                             <h6 class="card-title text-truncate fw-bold mb-1" style="font-size: 0.9rem;">{{ item.name }}</h6>
                             <div class="d-flex justify-content-between align-items-center mt-1">

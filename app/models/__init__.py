@@ -153,6 +153,8 @@ class MenuItem(db.Model):
     gst_percent = db.Column(db.Float, default=5.0)
     price = db.Column(db.Float, default=0.0)
     image = db.Column(db.String(250), nullable=True)
+    image_url = db.Column(db.String(500), nullable=True)
+    image_public_id = db.Column(db.String(250), nullable=True)
     description = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), default='Available') # Available, Out of Stock
 

@@ -28,7 +28,7 @@
                 {% for item in items %}
                 <tr>
                     <td>
-                        <img src="{{ item.image | menu_image }}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3252/3252179.png'" class="rounded-3" width="50" height="50" alt="Dish">
+                        <img src="{{ item.image_url | menu_image }}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3252/3252179.png'" class="rounded-3" width="50" height="50" alt="Dish">
                     </td>
                     <td>
                         <div class="fw-bold">{{ item.name }}</div>
