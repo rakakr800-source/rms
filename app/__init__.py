@@ -27,6 +27,43 @@ def create_app(config_class=Config):
     # Initialize extension backends
     db.init_app(app)
     migrate.init_app(app, db)
+    
+    # Run startup migrations/schema updates safely inside application context
+    with app.app_context():
+        try:
+            from sqlalchemy import text
+            engine = db.engine
+            db_type = engine.name
+            print(f"[STARTUP MIGRATION] Detected DB dialect: {db_type}")
+            
+            with engine.connect() as connection:
+                if db_type == 'postgresql':
+                    print("[STARTUP MIGRATION] Running PostgreSQL ALTER TABLE statements...")
+                    connection.execute(text("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image VARCHAR(250);"))
+                    connection.execute(text("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_url VARCHAR(500);"))
+                    connection.execute(text("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_public_id VARCHAR(250);"))
+                    connection.commit()
+                else:
+                    print("[STARTUP MIGRATION] Running SQLite ALTER TABLE statements...")
+                    try:
+                        connection.execute(text("ALTER TABLE menu_items ADD COLUMN image VARCHAR(250);"))
+                        connection.commit()
+                    except Exception as e:
+                        pass
+                    try:
+                        connection.execute(text("ALTER TABLE menu_items ADD COLUMN image_url VARCHAR(500);"))
+                        connection.commit()
+                    except Exception as e:
+                        pass
+                    try:
+                        connection.execute(text("ALTER TABLE menu_items ADD COLUMN image_public_id VARCHAR(250);"))
+                        connection.commit()
+                    except Exception as e:
+                        pass
+            print("[STARTUP MIGRATION] Schema successfully verified and updated on startup.")
+        except Exception as startup_err:
+            print(f"[STARTUP MIGRATION ERROR] Failed to run startup migration: {startup_err}")
+
     login_manager.init_app(app)
     limiter.init_app(app)
     cache.init_app(app)

@@ -3,9 +3,9 @@ services:
     name: rms
     runtime: python
 
-    buildCommand: pip install -r requirements.txt && python run_schema_update.py
+    buildCommand: pip install -r requirements.txt
 
-    startCommand: gunicorn run:app
+    startCommand: python run_schema_update.py && gunicorn run:app
 
     envVars:
       - key: PYTHON_VERSION
