@@ -216,6 +216,80 @@ def delete_biometrics():
     log_activity("Delete Biometrics", "Auth", f"Deleted biometric credential for user {user.username}")
     return jsonify({"status": "success", "message": "Fingerprint successfully deleted!"})
 
+@auth_bp.route('/webauthn/login/options', methods=['POST'])
+def login_options():
+    username = request.json.get('username')
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.fingerprint_enabled:
+        return jsonify({"status": "failed", "message": "Biometrics not configured for this user."}), 400
+        
+    challenge = base64.b64encode(os.urandom(32)).decode('utf-8')
+    session['webauthn_login_challenge'] = challenge
+    session['webauthn_login_username'] = username
+    
+    credentials = WebAuthnCredential.query.filter_by(user_id=user.id).all()
+    allow_credentials = []
+    for cred in credentials:
+        allow_credentials.append({
+            "type": "public-key",
+            "id": cred.credential_id
+        })
+        
+    return jsonify({
+        "challenge": challenge,
+        "allowCredentials": allow_credentials,
+        "timeout": 60000,
+        "userVerification": "required",
+        "rpId": request.host.split(':')[0]
+    })
+
+@auth_bp.route('/webauthn/login/verify', methods=['POST'])
+def login_verify():
+    data = request.json
+    challenge = session.get('webauthn_login_challenge')
+    username = session.get('webauthn_login_username')
+    
+    if not challenge or not username:
+        return jsonify({"status": "failed", "message": "Session challenge timed out."}), 400
+        
+    user = User.query.filter_by(username=username).first()
+    if not user or user.status == 'Disabled':
+        return jsonify({"status": "failed", "message": "User not found or account is disabled."}), 400
+        
+    credential_id = data.get('id')
+    cred = WebAuthnCredential.query.filter_by(user_id=user.id, credential_id=credential_id).first()
+    if not cred:
+        return jsonify({"status": "failed", "message": "Invalid biometric key."}), 400
+        
+    cred.sign_count += 1
+    db.session.commit()
+    
+    # 4. ATTENDANCE AUTOMATION
+    from datetime import date, datetime
+    from app.models import Attendance
+    today = date.today()
+    existing_attendance = Attendance.query.filter_by(user_id=user.id, date=today).first()
+    if not existing_attendance:
+        now = datetime.now()
+        late = False
+        if user.shift == 'Day' and now.time() > datetime.strptime('09:15:00', '%H:%M:%S').time():
+            late = True
+        attn = Attendance(
+            user_id=user.id,
+            date=today,
+            clock_in=now,
+            late_entry=late,
+            status='Present'
+        )
+        db.session.add(attn)
+        db.session.commit()
+        log_activity("Clock In (Auto-Biometric)", "Attendance", f"User {user.username} clocked in automatically via fingerprint login.")
+        
+    login_user(user)
+    log_activity("Login Biometrics", "Auth", f"User {user.username} logged in using fingerprint biometric.")
+    
+    return jsonify({"status": "success", "message": "Login successful!"})
+
 @auth_bp.route('/webauthn/login/direct-options', methods=['POST'])
 def login_direct_options():
     challenge = base64.b64encode(os.urandom(32)).decode('utf-8')
