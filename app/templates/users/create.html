@@ -96,26 +96,46 @@
     {% if user %}
     <div class="col-lg-4">
         <div class="card card-custom p-4 text-center">
-            <h5 class="fw-bold mb-2">Fingerprint Biometrics</h5>
-            <p class="text-muted small">Register device credential (fingerprint/face id) directly from user phone browser.</p>
+            <h5 class="fw-bold mb-2">Biometric Registration</h5>
+            <p class="text-muted small">Manage fingerprint/face biometric credentials for production auth and attendance.</p>
             
-            <div class="py-4 text-warning">
-                <i class="bi bi-fingerprint" style="font-size: 5rem;"></i>
+            <div class="py-3 text-warning">
+                <i class="bi bi-fingerprint" style="font-size: 5.5rem;"></i>
             </div>
             
-            {% if user.fingerprint_enabled %}
-            <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 mb-3 fw-bold"><i class="bi bi-check-circle"></i> Biometric Enabled</span>
-            {% else %}
-            <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3 py-2 mb-3 fw-bold">Not Configured</span>
-            {% endif %}
+            <div class="mb-4">
+                {% if user.fingerprint_enabled %}
+                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 mb-2 fw-bold d-inline-block">
+                        <i class="bi bi-check-circle-fill me-1"></i> Fingerprint Registered
+                    </span>
+                    {% set cred = user.credentials[0] if user.credentials else None %}
+                    {% if cred %}
+                        <div class="text-muted small">Last Updated: {{ cred.created_at.strftime('%d-%b-%Y %I:%M %p') }}</div>
+                    {% endif %}
+                {% else %}
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3 py-2 mb-2 fw-bold d-inline-block">
+                        <i class="bi bi-exclamation-circle-fill me-1"></i> No Fingerprint Registered
+                    </span>
+                {% endif %}
+            </div>
             
-            {% if current_user.id == user.id %}
-            <button class="btn btn-outline-primary w-100 py-2" id="enroll-biometrics-btn">
-                <i class="bi bi-plus-lg me-2"></i> Register Biometric Key
-            </button>
-            {% else %}
-            <small class="text-muted">Biometric key enrollment must be executed by the employee from their own session.</small>
-            {% endif %}
+            <div class="d-grid gap-2">
+                {% if not user.fingerprint_enabled %}
+                <button class="btn btn-primary py-2 fw-semibold" id="register-biometrics-btn">
+                    <i class="bi bi-plus-circle me-1"></i> Register Fingerprint
+                </button>
+                {% else %}
+                <button class="btn btn-success py-2 fw-semibold" id="verify-biometrics-btn">
+                    <i class="bi bi-shield-check me-1"></i> Verify Fingerprint
+                </button>
+                <button class="btn btn-warning py-2 fw-semibold text-dark" id="update-biometrics-btn">
+                    <i class="bi bi-arrow-repeat me-1"></i> Replace Fingerprint
+                </button>
+                <button class="btn btn-danger py-2 fw-semibold" id="delete-biometrics-btn">
+                    <i class="bi bi-trash3 me-1"></i> Delete Fingerprint
+                </button>
+                {% endif %}
+            </div>
         </div>
     </div>
     {% endif %}
@@ -144,90 +164,206 @@
         });
     }
 
-    // Enroll biometrics handler via WebAuthn API
-    const enrollBtn = document.getElementById('enroll-biometrics-btn');
-    if (enrollBtn) {
-        enrollBtn.addEventListener('click', async function() {
+    // Base64 helper decoding
+    function bufferDecode(value) {
+        value = value.replace(/-/g, '+').replace(/_/g, '/');
+        while (value.length % 4) {
+            value += '=';
+        }
+        return Uint8Array.from(atob(value), c => c.charCodeAt(0));
+    }
+
+    // Base64 helper encoding
+    function bufferEncode(value) {
+        return btoa(String.fromCharCode(...new Uint8Array(value)))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+    }
+
+    // Enroll/Replace biometrics handler via WebAuthn API
+    async function performRegistration() {
+        try {
+            // 1. Get options from server
+            const optionsRes = await fetch('/webauthn/register/options', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: "{{ user.id if user else '' }}" })
+            });
+            const options = await optionsRes.json();
+            
+            options.challenge = bufferDecode(options.challenge);
+            options.user.id = bufferDecode(options.user.id);
+            
+            // 2. Query authenticator
+            const credential = await navigator.credentials.create({ publicKey: options });
+            const publicKey = credential.response.getPublicKey ? credential.response.getPublicKey() : null;
+
+            const credentialResponse = {
+                id: credential.id,
+                rawId: bufferEncode(credential.rawId),
+                type: credential.type,
+                publicKey: publicKey ? bufferEncode(publicKey) : null,
+                response: {
+                    clientDataJSON: bufferEncode(credential.response.clientDataJSON),
+                    attestationObject: bufferEncode(credential.response.attestationObject)
+                }
+            };
+            
+            // 3. Post back verification details
+            const verifyRes = await fetch('/webauthn/register/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(credentialResponse)
+            });
+            
+            const result = await verifyRes.json();
+            if (result.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Biometric Registered!',
+                    text: result.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (err) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Registration Failed',
+                text: err.message || 'Make sure your browser/device biometrics hardware is enabled.'
+            });
+        }
+    }
+
+    const registerBtn = document.getElementById('register-biometrics-btn');
+    const updateBtn = document.getElementById('update-biometrics-btn');
+
+    if (registerBtn) registerBtn.addEventListener('click', performRegistration);
+    if (updateBtn) {
+        updateBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Replace Fingerprint?',
+                text: 'This will delete the existing registered fingerprint for this employee and replace it with a new one.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ffc107',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Replace'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    performRegistration();
+                }
+            });
+        });
+    }
+
+    // Verify Biometrics Handler
+    const verifyBtn = document.getElementById('verify-biometrics-btn');
+    if (verifyBtn) {
+        verifyBtn.addEventListener('click', async function() {
             try {
-                // 1. Get options from server
-                const optionsRes = await fetch('/webauthn/register/options', { method: 'POST' });
-                const options = await optionsRes.json();
-                
-                // Helper to decode base64
-                function bufferDecode(value) {
-
-    value = value
-        .replace(/-/g, '+')
-        .replace(/_/g, '/');
-
-    while (value.length % 4) {
-        value += '=';
-    }
-
-    return Uint8Array.from(
-        atob(value),
-        c => c.charCodeAt(0)
-    );
-}
-                
-                options.challenge = bufferDecode(options.challenge);
-                options.user.id = bufferDecode(options.user.id);
-                
-                // 2. Query authenticator
-                const credential = await navigator.credentials.create({ publicKey: options });
-                
-                function bufferEncode(value) {
-
-    return btoa(
-        String.fromCharCode(...new Uint8Array(value))
-    )
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
-
-}
-             // Publickey   
-                const publicKey = credential.response.getPublicKey
-    ? credential.response.getPublicKey()
-    : null;
-
-const credentialResponse = {
-    id: credential.id,
-    rawId: bufferEncode(credential.rawId),
-    type: credential.type,
-    publicKey: publicKey ? bufferEncode(publicKey) : null,
-    response: {
-        clientDataJSON: bufferEncode(credential.response.clientDataJSON),
-        attestationObject: bufferEncode(credential.response.attestationObject)
-    }
-};
-                // 3. Post back verification details
-                const verifyRes = await fetch('/webauthn/register/verify', {
+                const optionsRes = await fetch('/webauthn/verify/options', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(credentialResponse)
+                    body: JSON.stringify({ user_id: "{{ user.id if user else '' }}" })
+                });
+                const options = await optionsRes.json();
+                
+                if (options.status === 'failed') {
+                    throw new Error(options.message);
+                }
+                
+                options.challenge = bufferDecode(options.challenge);
+                if (options.allowCredentials) {
+                    options.allowCredentials.forEach(cred => {
+                        cred.id = bufferDecode(cred.id);
+                    });
+                }
+                
+                const assertion = await navigator.credentials.get({ publicKey: options });
+                const assertionResponse = {
+                    id: assertion.id,
+                    rawId: bufferEncode(assertion.rawId),
+                    type: assertion.type,
+                    response: {
+                        clientDataJSON: bufferEncode(assertion.response.clientDataJSON),
+                        authenticatorData: bufferEncode(assertion.response.authenticatorData),
+                        signature: bufferEncode(assertion.response.signature)
+                    }
+                };
+                
+                const confirmRes = await fetch('/webauthn/verify/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(assertionResponse)
                 });
                 
-                const result = await verifyRes.json();
+                const result = await confirmRes.json();
                 if (result.status === 'success') {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Device Registered!',
-                        text: result.message,
-                        timer: 1500,
-                        showConfirmButton: false
+                        title: 'Match Confirmed!',
+                        text: result.message
                     });
-                    setTimeout(() => location.reload(), 1500);
                 } else {
                     throw new Error(result.message);
                 }
             } catch (err) {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Registration Failed',
-                    text: err.message || 'Make sure your browser/device biometrics hardware is enabled.'
+                    title: 'Verification Failed',
+                    text: err.message || 'Verification scan failed.'
                 });
             }
+        });
+    }
+
+    // Delete Biometrics Handler
+    const deleteBtn = document.getElementById('delete-biometrics-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Delete Fingerprint?',
+                text: 'Are you sure you want to permanently delete this employee\'s fingerprint biometric data?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Delete'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const deleteRes = await fetch('/webauthn/delete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: "{{ user.id if user else '' }}" })
+                        });
+                        const data = await deleteRes.json();
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: data.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    } catch (err) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: err.message
+                        });
+                    }
+                }
+            });
         });
     }
 </script>
